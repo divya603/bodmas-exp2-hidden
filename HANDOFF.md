@@ -17,16 +17,16 @@ tell which order-of-operations misconception a student holds from the student's 
 **one line of that work is hidden**, and whether it matters where the hidden line sits relative to
 the student's error.
 
-**Status (2026-09-14): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE on
-branch `hidden-difficulty`; practice items, instructions and quiz NOT yet adapted.**
-- **All of this is on branch `hidden-difficulty`** (pushed; every push deploys its staging site,
-  §1). `main` still holds the initial import and serves Experiment 1's task at the main URL. Merge to
-  `main` only with the user's go-ahead: pushing `main` deploys the live experiment.
-- Done on the branch: the v6 pool (720 items, §3), verified; the ideal observer run on it (§4, §5);
-  the natural-error-position analysis (§5); the sampler in JS and Python, identical on 503 seeds
-  (§7); the trial view hides the line (§7); `src/user/data/stimulus_pool.json` is the v6 pool.
-- Not done: practice items (still Experiment 1's 3 full traces), a decision on whether the
-  instructions and quiz stay as they are, the Bayesian figures (stale, §6). See §9.
+**Status (2026-09-14): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE and
+live on `main`; practice items, instructions and quiz NOT yet adapted.**
+- **Work on `main` only** (the user's preference: one branch). The `hidden-difficulty` branch was
+  merged into `main` by fast-forward and deleted on 2026-09-14. Pushing `main` deploys the live
+  experiment, so keep `main` in a runnable state.
+- Done: the v6 pool (720 items, §3), verified; the ideal observer run on it (§4, §5); the
+  natural-error-position analysis (§5); the sampler in JS and Python, identical on 503 seeds (§7);
+  the trial view hides the line (§7); `src/user/data/stimulus_pool.json` is the v6 pool.
+- Not done: practice items (still Experiment 1's 3 full traces), instructions and quiz review for
+  Experiment 2, the Bayesian figures (stale, §6). See §9.
 No human or LLM data exist yet.
 
 Provenance: seeded from `divya603/bodmas-exp1-position` at commit `862dea1` (its pool, model,
@@ -114,7 +114,6 @@ Run these in order, once, right after cloning:
 ```bash
 git clone https://github.com/divya603/bodmas-exp2-hidden.git
 cd bodmas-exp2-hidden
-git checkout hidden-difficulty   # the v6 work lives here until it is merged
 npm run get_secrets          # fetch the 5 gitignored lab files from codec-lab/smile-secrets
 npm run upload_config        # push the app + deploy config into THIS repo's GitHub secrets
 npm run setup_project        # npm install + git hooks (post-commit / post-checkout)
@@ -137,28 +136,26 @@ What each secrets step does:
   once per repo, not once per clone.
 
 **Status as of 2026-09-14: secrets uploaded (by the user) and real deploys confirmed.** `main`:
-`workflow_dispatch` on 2026-09-13, `deploy` job ran (1m20s). `hidden-difficulty`: every push deploys;
-first on 2026-09-14 (`deploy` job 1m31s). After commit `8c50fbd` (sampler + hidden line) the staging
-deploy ran (`deploy` job 1m22s) and the LIVE staging bundle was checked: it contains the v6 items
-(`A000-E` ... `B119-H`) and `hidden_line`. Remember `deploy.yml` SKIPS the `deploy` job and still
-shows GREEN when secrets are missing, so always check with `gh run view <id>` that the **`deploy`
-job itself ran** (build and rsync, about a minute).
+first `workflow_dispatch` on 2026-09-13 (`deploy` job ran, 1m20s; that build was Experiment 1's task).
+Remember `deploy.yml` SKIPS the `deploy` job and still shows GREEN when secrets are missing, so always
+check with `gh run view <id>` that the **`deploy` job itself ran** (build and rsync, about a minute).
 
-⚠️ The `main` URL serves **Experiment 1's task** (every step visible) under Experiment 2's name until
-the branch is merged. The staging URL serves the Experiment 2 trials but still Experiment 1's practice
-items (§9). Do not share either with participants.
+⚠️ The live `main` URL now serves the Experiment 2 trials, but still Experiment 1's practice items
+(§9). Do not send participants there until the §7 checklist is done. A stale staging copy from the
+deleted `hidden-difficulty` branch remains on the server at `.../bodmas-exp2-hidden/hidden-difficulty/`
+(deploys never remove old paths); ignore it and never share it. Its test data, if any, sits under its
+own Firestore key.
 
 Node: `.node_version` pins 20.18.1; Node 24 has been working locally. If `npm install` misbehaves,
 switch with `nvm use 20`.
 
 What changes automatically because this is a separate repo:
 - **The deploy URL.** Path is `/<owner>/<repo>/<branch>/`, so main deploys to
-  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/` and the branch to
-  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/hidden-difficulty/`; the short codename URL
-  is derived from the same path (printed in the deploy log). Any Prolific link must point at `main`.
+  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/`, and the short codename URL is derived
+  from the same path (printed in the deploy log). Any Prolific link must point here.
 - **Where the data lands.** Firestore's `projectRef` (`src/core/config.js`) is derived from the
   deploy path, so this experiment's data is stored under its own key and cannot mix with
-  Experiment 1's (and staging data stays apart from `main`'s).
+  Experiment 1's.
 
 ---
 
@@ -167,7 +164,7 @@ What changes automatically because this is a separate repo:
 ```
 base-task/         The model, the pool, the ideal observer, the hidden-step inference, the sampler's
                    Python twin. §3 to §5, §7.
-analysis-Bayesian/ Ideal-observer figures. §6 (stale on this branch).
+analysis-Bayesian/ Ideal-observer figures. §6 (stale).
 src/               The Smile/Vue web experiment. §7.
 scripts/           Smile deploy/data scripts.
 public/            consent-form.pdf, debrief.pdf served by the frontend.
@@ -303,8 +300,7 @@ the difficulty (easy s(k+1), medium s(k-1), hard s(k)), the three versions of a 
 shared field, and the hidden-version observer is recomputed with `multi_hidden_posterior` (the
 forward-DP route, not the builder's two-step route) to check the stored marginal, that the expert
 stays eliminated, and that the key is still the observer's answer. Globally: every expression in one
-trace, and every cell count above. Currently ALL CHECKS PASSED (2026-09-14, branch
-`hidden-difficulty`).
+trace, and every cell count above. Currently ALL CHECKS PASSED (2026-09-14).
 
 ---
 
@@ -420,10 +416,10 @@ The work without the answer: still 1.000. Only the first line shown: error-at-st
 
 ## 6. Figures (`analysis-Bayesian/`)
 
-⚠️ **Stale on branch `hidden-difficulty`.** The scripts group by `POSITIONS = [1, 3]`
-(`bayes_common.py`) and `plot_bayes_hidden_dist_A.py` reads the v5 conditions (`none/s2/s4/error_line`),
-which `bayes_per_item_hidden.json` no longer has. The PNGs in the folder are from the v5 pool. They
-need rewriting for v6 (difficulty instead of position) before use.
+⚠️ **Stale for v6.** The scripts group by `POSITIONS = [1, 3]` (`bayes_common.py`) and
+`plot_bayes_hidden_dist_A.py` reads the v5 conditions (`none/s2/s4/error_line`), which
+`bayes_per_item_hidden.json` no longer has. The PNGs in the folder are from the v5 pool. They need
+rewriting for v6 (difficulty instead of position) before use.
 
 - **`bayes_common.py`** shared loader and styling; reads `base-task/bayes_per_item.json`.
 - **`plot_bayes_1misc_heatmap.py`**, **`plot_bayes_1misc_by_rule.py`**, **`plot_bayes_1misc_profile.py`**
@@ -445,8 +441,8 @@ by `foil_status`; never group by one rule while plotting the marginal selected b
 ## 7. The web experiment (`src/`)
 
 A Smile (codec-lab / gureckislab) Vue-3 experiment. **User code in `src/user/`.** `npm run dev` runs
-it locally; `npm run build` must succeed before pushing. Inherited from Experiment 1; on this branch
-the main task is Experiment 2's, the practice is still Experiment 1's.
+it locally; `npm run build` must succeed before pushing. Inherited from Experiment 1; the main task is
+now Experiment 2's, the practice is still Experiment 1's.
 
 - **`src/user/design.js`** the timeline: consent -> windowsizer -> instructions -> comprehension quiz
   -> practice -> experiment -> strategy question -> feedback survey -> demographics -> save ->
@@ -468,10 +464,9 @@ the main task is Experiment 2's, the practice is still Experiment 1's.
   **`src/user/data/practice_items.json`** = still Experiment 1's 3 practice items, written by
   `base-task/practice.py`; they show every line and have no `hidden_line`.
 - **`InstructionsView.vue`** / **`quizQuestions.js`**: Experiment 1's user-approved text and 4-question
-  quiz, unchanged. The text says "the step-by-step work a student wrote" and "every student makes
-  exactly one mistake, at one step of their work"; it never claims every line is shown, so it stays
-  accurate and says nothing about hidden lines, matching the decision not to tell participants.
-  Whether to keep it unchanged is still for the user to confirm (§9).
+  quiz, unchanged so far; under review with the user (§9). The text says "the step-by-step work a
+  student wrote" and "every student makes exactly one mistake, at one step of their work"; it never
+  claims every line is shown.
 - **`PracticeView.vue`** feedback highlights the error step amber. If practice items get a hidden
   line, decide what the feedback highlights when the error's own line is the hidden one (hard).
 - **`src/builtins/thanks/ThanksView.vue`** Prolific completion code **`CNIEB9GV`** (old study). A new
@@ -493,8 +488,8 @@ https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/?PROLIFIC_PID={{%PROL
 ```
 
 ### Checklist before running any participant
-- [ ] Practice items, instructions and quiz settled for the §0 design (§9), merged to `main`,
-      deployed, and the LIVE bundle verified to contain the v6 pool and sampler.
+- [ ] Practice items, instructions and quiz settled for the §0 design (§9), deployed, and the LIVE
+      bundle verified to contain them.
 - [x] Deploy secrets uploaded and a real deploy confirmed (§1).
 - [ ] Prolific completion code replaced; `estimated_time` in `design.js` checked with the PI.
 - [ ] Consent and debrief: `design.js` points at `public/consent-form.pdf` and `public/debrief.pdf`,
@@ -515,11 +510,10 @@ https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/?PROLIFIC_PID={{%PROL
 
 ### Deploys
 `.github/workflows/deploy.yml` deploys on push to ANY branch except `feat-* fix-* refactor-* test-*
-chore-* style-* docs-* ci-*`, each to its own path `/<owner>/<repo>/<branch>/`. So **pushing `main`
-deploys the live experiment**; other branches (including `hidden-difficulty`) get separate staging
-sites. Commits touching only `*.md` files or `docs/` do NOT deploy (`paths-ignore`). Monitor with
-`gh run list` / `gh run watch`. A transient "SSH i/o timeout" at "create the remote folders" has
-happened; `gh run rerun <id> --failed` fixed it.
+chore-* style-* docs-* ci-*`, each to its own path `/<owner>/<repo>/<branch>/`. **Pushing `main`
+deploys the live experiment.** Commits touching only `*.md` files or `docs/` do NOT deploy
+(`paths-ignore`). Monitor with `gh run list` / `gh run watch`. A transient "SSH i/o timeout" at
+"create the remote folders" has happened; `gh run rerun <id> --failed` fixed it.
 
 ---
 
@@ -551,26 +545,25 @@ python3 analysis-Bayesian/plot_bayes_1misc_profile.py
 
 # Experiment
 npm run dev ; npm run build
-git push origin hidden-difficulty          # deploys the STAGING site
-git push origin main                       # DEPLOYS THE LIVE EXPERIMENT (ask first)
+git push origin main                       # DEPLOYS THE LIVE EXPERIMENT
 npm run getdata ; npm run getrecruitment
 npm run upload_config                      # (re)push deploy secrets from env/*.local
 ```
 
 ---
 
-## 9. What is next (all on branch `hidden-difficulty`)
+## 9. What is next
 
-1. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
+1. **Instructions and quiz** (in progress with the user, 2026-09-14). The decision is not to tell
+   participants a line is missing; review the Experiment 1 text and quiz for anything that now
+   misleads or confuses.
+2. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
    whether practice should also leave a line out (and, for a hard-style item, what the feedback
    highlights when the error's own line is missing); then `practice.py` and `PracticeView.vue`.
-2. **Instructions and quiz.** Confirm with the user that Experiment 1's text stays as is (it never
-   mentions hidden lines, consistent with not telling participants).
-3. **Click through the staging site** end to end: a line really is missing on every trial, 24
-   trials, and `difficulty` / `hidden_line` / `base_id` are in the saved trial data.
+3. **Click through the live site** end to end: a line really is missing on every trial, 24 trials,
+   and `difficulty` / `hidden_line` / `base_id` are in the saved trial data.
 4. **Figures** rewritten for v6 (§6).
-5. `estimated_time`, Prolific code, IRB coverage (§7 checklist); merge to `main` only with the user's
-   go-ahead, then verify the live bundle.
+5. `estimated_time`, Prolific code, IRB coverage (§7 checklist), then verify the live bundle.
 
 ---
 
@@ -580,8 +573,9 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
   and recorded here.** The live site is built by CI from the git remote; local files do nothing for
   participants. A previous study lost 19 paid participants to a pool that was regenerated locally but
   never pushed.
-- **Pushing `main` deploys the live experiment.** Ask the user before pushing experiment-material
-  changes to `main`. Pushing `hidden-difficulty` deploys only its staging site.
+- **Work on `main` only; no second branch** (user's preference, 2026-09-14). Pushing `main` deploys
+  the live experiment, so run the checks (`verify.py`, `sample_form.py`, the parity check, `npm run
+  build`) before every push, and ask the user before pushing experiment-material changes.
 - **A green deploy run does not mean it deployed.** With secrets missing, the `deploy` job is skipped
   and the workflow still passes. Check the `deploy` job's steps (`gh run view <id>`).
 - **Two pool copies can drift.** `base-task/stimulus_pool.json` is the source; the frontend reads
@@ -594,9 +588,9 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
   `firebase/.service-account-key.json`, or any API key.
 - **User preferences:** finish a design discussion before writing code. On a surprising result, audit
   our own stimuli and task before blaming participants. The user often runs commands themselves via
-  `! <cmd>` and likes work pushed rather than left local. **No em dashes in any writing** (docs,
-  reports, chat). **LaTeX compiles on Overleaf only**: self-contained folders, figures referenced as
-  `figs/<exact-name>`, never install a local TeX toolchain.
+  `! <cmd>` and likes work pushed rather than left local. One branch (`main`). **No em dashes in any
+  writing** (docs, reports, chat). **LaTeX compiles on Overleaf only**: self-contained folders,
+  figures referenced as `figs/<exact-name>`, never install a local TeX toolchain.
 - If a commit prints `Cannot find module '@codenamize/codenamize'`, run `npm run setup_project`. The
   commit itself still lands.
 - Commit messages end with the current model's co-author line.

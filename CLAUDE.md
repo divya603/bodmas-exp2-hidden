@@ -4,8 +4,9 @@
    base stimulus pool (shared with Experiment 1), the model, the Bayesian ideal observer with and
    without hidden steps, the figures, the inherited web experiment, deploys, and what is next.
 2. **The design is decided** (HANDOFF §0); the v6 pool, the 24-trial sampler and the hidden-line
-   display are built on branch `hidden-difficulty`. Still open: practice items and whether the
-   instructions/quiz change (HANDOFF §9). Finish those discussions with the user before coding them.
+   display are built and live on `main`. **Work on `main` only** (no second branch). Still open:
+   practice items and the instructions/quiz (HANDOFF §9). Finish those discussions with the user
+   before coding them.
 3. **Keep `HANDOFF.md` current.** As you complete work (scripts, figures, findings, decisions,
    payments, deploys), update its relevant sections incrementally, or at the latest before the
    session ends. The next session must be able to pick up cold from HANDOFF.md alone.
