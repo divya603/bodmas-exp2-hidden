@@ -32,6 +32,13 @@ const form = sampleForm(pool, api.persist.formSeed)
 const trials = api.steps.append(form.map((item) => ({ ...item })))
 trials.append([{ id: 'summary' }])
 
+// Experiment 2: one line of the work, trace[hidden_line], is hidden. Nothing is
+// shown in its place and participants are not told; the work simply goes from
+// the line before to the line after. trace[0] is the expression, shown above.
+function shownWork(item) {
+  return item.trace.filter((_, i) => i !== item.hidden_line).slice(1)
+}
+
 // ── bonus scoring ───────────────────────────────────────────────────
 // Collapse the 6-point Likert to a binary agree/disagree judgment (>= 4 =
 // agree) and score each trial against the item's ground-truth direction
@@ -185,7 +192,7 @@ function finish() {
         Here is the final answer {{ api.stepData.student_name }} produced, along with their work:
       </p>
       <div class="font-mono text-base mb-5 space-y-1">
-        <p v-for="(step, i) in api.stepData.trace.slice(1)" :key="i">= {{ step }}</p>
+        <p v-for="(step, i) in shownWork(api.stepData)" :key="i">= {{ step }}</p>
       </div>
 
       <div class="border border-yellow-300 bg-yellow-50 rounded-lg p-4 mb-5">

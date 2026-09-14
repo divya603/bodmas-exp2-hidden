@@ -1,15 +1,21 @@
-// Draws one participant's 24-trial form from the Experiment 1 pool.
+// Draws one participant's 24-trial form from the Experiment 2 (v6) pool.
 // Python twin: base-task/sample_form.py. Both use the same PRNG (mulberry32)
 // and the same sequence of draws, so one seed gives the identical form in both
 // languages. Change one, change the other, then rerun its checks.
 //
-// Design (decided 2026-09-13): four pools by category x error position (A/1,
-// A/3, B/1, B/3). From each pool, one item is drawn at random for each of the 6
-// misconceptions (the rule present in the trace), so 24 trials: 12 agree / 12
-// disagree, 12 at each position, and every misconception present exactly 4
-// times, once per pool. Which foil a B trial names is left to the draw. Trial
-// order is shuffled, and the 24 names are shuffled so each appears exactly
-// once. Every pool expression is unique, so no form repeats one.
+// Design (decided 2026-09-14): 4 trials per misconception (the rule present in
+// the trace), 8 per difficulty, 12 agree / 12 disagree; 2 agree / 2 disagree
+// within each misconception and 4 / 4 within each difficulty. Four trials per
+// misconception cannot split evenly over three difficulties, so each
+// misconception fills one row of ROWS: one difficulty twice (once agree, once
+// disagree), the other two once. Which misconception gets which row is a random
+// permutation per participant, so the 36 misconception x difficulty x statement
+// cells balance in expectation (Smile has no cross-participant counter for an
+// exact rotation). Each cell is a random pool item of that (misconception,
+// difficulty, category); a disagree item brings the foil it was built with, so
+// which wrong statement a trial names is left to the draw, as in Experiment 1.
+// No trace (base_id) is drawn twice, so no expression repeats. Trial order is
+// shuffled, and the 24 names are shuffled so each appears exactly once.
 
 const IDS = [
   'add_before_mul',
@@ -20,11 +26,16 @@ const IDS = [
   'outside_bracket_first',
 ]
 
-const POOLS = [
-  ['A', 1],
-  ['A', 3],
-  ['B', 1],
-  ['B', 3],
+// [difficulty, category] cells per row; A = the statement names the present
+// rule (agree), B = it names a foil (disagree). Each difficulty column holds
+// 4 A and 4 B over the six rows.
+const ROWS = [
+  [['easy', 'A'], ['easy', 'B'], ['medium', 'A'], ['hard', 'B']],
+  [['easy', 'A'], ['easy', 'B'], ['medium', 'B'], ['hard', 'A']],
+  [['easy', 'A'], ['medium', 'A'], ['medium', 'B'], ['hard', 'B']],
+  [['easy', 'B'], ['medium', 'A'], ['medium', 'B'], ['hard', 'A']],
+  [['easy', 'A'], ['medium', 'B'], ['hard', 'A'], ['hard', 'B']],
+  [['easy', 'B'], ['medium', 'A'], ['hard', 'A'], ['hard', 'B']],
 ]
 
 // One name per trial (24), so no participant ever sees the same student twice.
@@ -62,15 +73,23 @@ function makeRng(seed) {
 
 export function sampleForm(pool, seed) {
   const rng = makeRng(seed)
+  const rows = rng.shuffle(IDS.slice()) // rows[r] = the misconception filling ROWS[r]
   const form = []
-  for (const [category, position] of POOLS) {
-    for (const mid of IDS) {
+  const used = new Set()
+  rows.forEach((mid, r) => {
+    for (const [difficulty, category] of ROWS[r]) {
       const members = pool.filter(
-        (it) => it.category === category && it.error_position === position && it.misconceptions[0] === mid
+        (it) =>
+          it.misconceptions[0] === mid &&
+          it.difficulty === difficulty &&
+          it.category === category &&
+          !used.has(it.base_id)
       )
-      form.push(rng.choice(members))
+      const item = rng.choice(members)
+      used.add(item.base_id)
+      form.push(item)
     }
-  }
+  })
   rng.shuffle(form)
 
   // Assign each trial a distinct student name (copies, so the shared pool

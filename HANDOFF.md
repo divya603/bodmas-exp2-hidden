@@ -17,16 +17,17 @@ tell which order-of-operations misconception a student holds from the student's 
 **one line of that work is hidden**, and whether it matters where the hidden line sits relative to
 the student's error.
 
-**Status (2026-09-14): design DECIDED, stimulus pool REBUILT (v6), frontend NOT yet rebuilt.**
-- **All of this is on branch `hidden-difficulty`** (pushed to origin). `main` still holds the initial
-  import (Experiment 1's v5 pool, errors at step 1 or 3). Merge to `main` only once the frontend is
-  done and the user agrees: pushing `main` deploys the live experiment.
+**Status (2026-09-14): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE on
+branch `hidden-difficulty`; practice items, instructions and quiz NOT yet adapted.**
+- **All of this is on branch `hidden-difficulty`** (pushed; every push deploys its staging site,
+  §1). `main` still holds the initial import and serves Experiment 1's task at the main URL. Merge to
+  `main` only with the user's go-ahead: pushing `main` deploys the live experiment.
 - Done on the branch: the v6 pool (720 items, §3), verified; the ideal observer run on it (§4, §5);
-  the natural-error-position analysis (§5).
-- Not done: the 24-trial sampler, the hidden-line rendering, practice items, instructions and quiz
-  (§9). `src/user/data/stimulus_pool.json` is still Experiment 1's v5 pool and the frontend still
-  shows every line. The Bayesian figures are stale (§6).
-Nothing has been deployed from this repo, and no human or LLM data exist.
+  the natural-error-position analysis (§5); the sampler in JS and Python, identical on 503 seeds
+  (§7); the trial view hides the line (§7); `src/user/data/stimulus_pool.json` is the v6 pool.
+- Not done: practice items (still Experiment 1's 3 full traces), a decision on whether the
+  instructions and quiz stay as they are, the Bayesian figures (stale, §6). See §9.
+No human or LLM data exist yet.
 
 Provenance: seeded from `divya603/bodmas-exp1-position` at commit `862dea1` (its pool, model,
 observer, figures and finished Experiment 1 frontend), plus the hidden-step code from the archive repo
@@ -50,6 +51,9 @@ is: a model change in Experiment 1 does not reach this repo automatically.
   The expression s0 and the answer s6 always stay visible, so all three versions exist only when k
   is 2, 3 or 4. The easy < medium < hard ordering is the user's hypothesis about people; the ideal
   observer barely distinguishes them (§5).
+- **Display: the hidden line is simply not shown.** No ellipsis, no "step not shown" note; the work
+  goes straight from the line before to the line after. **Participants are not told** a line is
+  missing.
 - **Pool:** 240 traces x 3 hidden versions = 720 items, 360 agree / 360 disagree. Difficulty is
   WITHIN expression (the same work in all three versions). No no-hide control: the effect of hiding
   vs not hiding can only be measured against Experiment 1.
@@ -63,27 +67,30 @@ is: a model change in Experiment 1 does not reach this repo automatically.
 
   | row | easy | medium | hard |
   |---|---|---|---|
-  | misconception 1 | agree + disagree | agree | disagree |
-  | misconception 2 | agree + disagree | disagree | agree |
-  | misconception 3 | agree | agree + disagree | disagree |
-  | misconception 4 | disagree | agree + disagree | agree |
-  | misconception 5 | agree | disagree | agree + disagree |
-  | misconception 6 | disagree | agree | agree + disagree |
+  | 1 | agree + disagree | agree | disagree |
+  | 2 | agree + disagree | disagree | agree |
+  | 3 | agree | agree + disagree | disagree |
+  | 4 | disagree | agree + disagree | agree |
+  | 5 | agree | disagree | agree + disagree |
+  | 6 | disagree | agree | agree + disagree |
 
-  The sampler rotates which misconception sits in which row (cyclically over 6), so over every 6
-  participants each of the 36 misconception x difficulty x statement cells appears exactly 4 times.
-- **Proposed by Claude, not yet explicitly confirmed by the user:** choose the named wrong rules so
-  each rule is named in exactly 2 disagree trials per participant. Then every belief statement
-  appears 4 times per participant (2 true, 2 false) and its wording never hints at the answer.
-- **Still open:** how the hidden line is displayed (an ellipsis line, "a step is not shown", nothing)
-  and whether participants are told a line is missing.
+  **Which misconception fills which row is a random permutation per participant**, drawn from the
+  form seed. An exact rotation (every cell exactly 4 times per 6 participants) is not possible: Smile's
+  `randomAssignCondition` samples with replacement and there is no cross-participant counter. The 36
+  misconception x difficulty x statement cells balance in expectation; over 500 simulated forms each
+  got 310 to 350 trials (expected 333).
+- **Wrong statements are left to the draw, as in Experiment 1** (user's decision, 2026-09-14). Each
+  disagree cell is a random pool item of that (misconception, difficulty), and it brings the foil it
+  was built with. Within one participant a wrong statement can therefore repeat: over 500 forms the
+  most-named wrong statement appears 3 to 5 times out of the 12 disagree trials in most forms (max 7).
+  Each statement is named as the CORRECT one exactly twice per form.
 
 ### The task (one trial)
 A participant sees a **math expression**, a **student's step-by-step work** containing exactly one
-order-of-operations misconception, with **one line hidden**, and a **belief statement** claiming the
-student holds a particular misconception. They rate on a **6-point Likert scale** (1 = Strongly
-Disagree, 6 = Strongly Agree) how well the statement explains the work, NOT whether the final answer
-is right. Scoring collapses the rating at **>= 4 = agree**.
+order-of-operations misconception, with **one line silently left out**, and a **belief statement**
+claiming the student holds a particular misconception. They rate on a **6-point Likert scale** (1 =
+Strongly Disagree, 6 = Strongly Agree) how well the statement explains the work, NOT whether the
+final answer is right. Scoring collapses the rating at **>= 4 = agree**.
 
 ### The 6 misconceptions
 | id | meaning |
@@ -129,37 +136,37 @@ What each secrets step does:
   `SLACK_WEBHOOK_URL`, `SLACK_WEBHOOK_ERROR_URL`) to whatever repo `origin` points at. Only needed
   once per repo, not once per clone.
 
-**Status as of 2026-09-14: secrets NOT yet uploaded to this repo, so nothing has been deployed.**
-`deploy.yml` handles missing secrets gracefully: its `check-secrets` job SKIPS the `deploy` job and
-the run still shows GREEN, with a "secrets are not configured, skipping deploy" notice. After
-`force_deploy`, confirm with `gh run list` then `gh run view <id>` that the **`deploy` job itself
-ran** (build and rsync, about a minute), and look for the lab Slack message. Update this status
-line once done.
+**Status as of 2026-09-14: secrets uploaded (by the user) and real deploys confirmed.** `main`:
+`workflow_dispatch` on 2026-09-13, `deploy` job ran (1m20s). `hidden-difficulty`: every push deploys;
+first on 2026-09-14 (`deploy` job 1m31s). Remember `deploy.yml` SKIPS the `deploy` job and still
+shows GREEN when secrets are missing, so always check with `gh run view <id>` that the **`deploy`
+job itself ran** (build and rsync, about a minute).
 
-⚠️ Until the hidden-step frontend exists (§9), a deployment of this repo serves **Experiment 1's
-task** (every step visible) under Experiment 2's URL. Do not share the URL with anyone.
+⚠️ The `main` URL serves **Experiment 1's task** (every step visible) under Experiment 2's name until
+the branch is merged. The staging URL serves the Experiment 2 trials but still Experiment 1's practice
+items (§9). Do not share either with participants.
 
 Node: `.node_version` pins 20.18.1; Node 24 has been working locally. If `npm install` misbehaves,
 switch with `nvm use 20`.
 
 What changes automatically because this is a separate repo:
 - **The deploy URL.** Path is `/<owner>/<repo>/<branch>/`, so main deploys to
-  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/`, and the short codename URL is derived
-  from the same path (printed in the deploy log). Any Prolific link must point here. Once secrets
-  exist, pushing `hidden-difficulty` deploys a separate staging site at
-  `.../bodmas-exp2-hidden/hidden-difficulty/`.
+  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/` and the branch to
+  `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/hidden-difficulty/`; the short codename URL
+  is derived from the same path (printed in the deploy log). Any Prolific link must point at `main`.
 - **Where the data lands.** Firestore's `projectRef` (`src/core/config.js`) is derived from the
   deploy path, so this experiment's data is stored under its own key and cannot mix with
-  Experiment 1's.
+  Experiment 1's (and staging data stays apart from `main`'s).
 
 ---
 
 ## 2. Repository map
 
 ```
-base-task/         The model, the pool, the ideal observer, and the hidden-step inference. §3 to §5.
+base-task/         The model, the pool, the ideal observer, the hidden-step inference, the sampler's
+                   Python twin. §3 to §5, §7.
 analysis-Bayesian/ Ideal-observer figures. §6 (stale on this branch).
-src/               The Smile/Vue web experiment (inherited from Experiment 1). §7.
+src/               The Smile/Vue web experiment. §7.
 scripts/           Smile deploy/data scripts.
 public/            consent-form.pdf, debrief.pdf served by the frontend.
 env/, firebase/    Smile config. env/.env is tracked defaults; env/*.local are secrets (untracked).
@@ -252,7 +259,7 @@ traces: step 2: 80, step 3: 79, step 4: 81. That near-even split is chance (seed
 Item fields: `id` (e.g. `A000-E`), `base_id` (`A000`, shared by a trace's three versions),
 `category, difficulty` (`easy`/`medium`/`hard`), `hidden_line` (index into `trace`),
 `error_position, expression, n_ops, misconceptions, num_misconceptions, trace` (all 7 lines; the
-frontend hides `trace[hidden_line]`), `probed_misconception, statement_correct, student_name,
+frontend leaves out `trace[hidden_line]`), `probed_misconception, statement_correct, student_name,
 belief_statement, io_marginal_full, io_marginal_hidden`, plus on B items `foil_status` (full trace).
 v5's `io_foil_marginal` is gone (it equals `io_marginal_full` on B items). `student_name` and
 `belief_statement` are placeholders the sampler reassigns.
@@ -260,7 +267,8 @@ v5's `io_foil_marginal` is gone (it equals `io_marginal_full` on B items). `stud
 **Answer-leak fields** (never show a solver or a participant): `statement_correct, misconceptions,
 probed_misconception, category, num_misconceptions, foil_status, io_marginal_full,
 io_marginal_hidden`. `id` and `base_id` start with A or B, so they encode the category too: never
-display them.
+display them. (They are Smile step ids in the task, but Smile's router only pushes named views, so
+step ids never reach the URL.)
 
 ### ⚠️ Things about the pool that will bite you
 1. **6 operators.** At 4 ops `outside_bracket_first` never reaches step 3 at all; never go below 5.
@@ -280,8 +288,9 @@ display them.
 6. **`outside_bracket_first` errors look like the operator rules** (e.g. `4 + 8 ÷ (4 - 1)` ->
    `12 ÷ (4 - 1)` reads as "addition before division" but the model says only outside() can make
    it). Guarded: `foil_options()` drops look-alike foils and `verify.py` asserts none are named.
-7. **`src/user/data/stimulus_pool.json` is still the v5 pool on this branch.** Copy the v6 pool
-   there only together with the new sampler; the current `sampleForm.js` expects positions 1/3.
+7. **Two pool copies.** `base-task/stimulus_pool.json` is the source; the frontend bundles
+   `src/user/data/stimulus_pool.json`. They are identical (v6) since 2026-09-14. After any rebuild,
+   copy it over and check with `cmp`, then rerun the sampler checks (§7).
 
 ### Verification: `verify.py`
 Independent verifier; run after ANY regeneration (`cd base-task && python3 verify.py`, exits
@@ -402,8 +411,8 @@ The work without the answer: still 1.000. Only the first line shown: error-at-st
 ### The design questions, resolved (2026-09-14)
 1. Which line is hidden: relative to the error (easy / medium / hard, §0), not a fixed s2 or s4.
 2. Items: 720 (240 traces x 3 versions), no no-hide control.
-3. Trials: 24 per participant, one expression at most once, with the rotation in §0.
-4. **Still open:** display of the hidden line, and whether participants are told a line is missing.
+3. Trials: 24 per participant, one expression at most once, rows assigned by random permutation.
+4. Display: the line is left out with nothing in its place, and participants are not told.
 
 ---
 
@@ -431,29 +440,38 @@ by `foil_status`; never group by one rule while plotting the marginal selected b
 
 ---
 
-## 7. The web experiment (`src/`), inherited from Experiment 1
+## 7. The web experiment (`src/`)
 
 A Smile (codec-lab / gureckislab) Vue-3 experiment. **User code in `src/user/`.** `npm run dev` runs
-it locally. **Everything here was built for Experiment 1 and shows every line of the work.** It is a
-working starting point, not Experiment 2's task.
+it locally; `npm run build` must succeed before pushing. Inherited from Experiment 1; on this branch
+the main task is Experiment 2's, the practice is still Experiment 1's.
 
 - **`src/user/design.js`** the timeline: consent -> windowsizer -> instructions -> comprehension quiz
   -> practice -> experiment -> strategy question -> feedback survey -> demographics -> save ->
   debrief -> thanks. `estimated_time` is set for Experiment 1.
-- **`src/user/components/trace_judgment/TraceJudgmentView.vue`** the 24-trial task (expression, work
-  as `= step` lines, belief statement, 6-point Likert, 3-second lock, "X of 24" counter, mouse
-  tracking, bonus scoring). **Needs to render `trace[hidden_line]` as hidden.**
-- **`src/user/utils/sampleForm.js`** + Python twin **`base-task/sample_form.py`**: Experiment 1's
-  sampler (four pools by category x position, one item per misconception from each, 24 trials, same
-  seeded PRNG in both languages). **Knows nothing about v6; `sample_form.py`'s checks fail against
-  the v6 pool.** Both must be rewritten for the §0 form.
-- **`src/user/data/stimulus_pool.json`** = still the **v5** pool (see §3 item 7).
-  **`src/user/data/practice_items.json`** = Experiment 1's 3 practice items, written by
-  `base-task/practice.py`; they show every step.
+- **`src/user/components/trace_judgment/TraceJudgmentView.vue`** the 24-trial task. Shows the
+  expression, then the work as `= line` for every line except `trace[hidden_line]` (`shownWork()`;
+  nothing in its place), the belief statement, 6-point Likert, 3-second lock, "X of 24" counter, mouse
+  tracking, bonus scoring. Every item field (incl. `difficulty`, `hidden_line`, `base_id`) is recorded
+  with the trial. The form seed is persisted, so a reload redraws the same form.
+- **`src/user/utils/sampleForm.js`** + Python twin **`base-task/sample_form.py`**: the v6 sampler
+  (§0): a random permutation assigns the 6 misconceptions to the 6 `ROWS`; each (difficulty,
+  category) cell of a row is one random pool item of that misconception, skipping traces already
+  used; then the trial order and the 24 names are shuffled. Same mulberry32 PRNG and draw order in
+  both. `python3 sample_form.py` runs the 500-seed checks (every balance in §0, distinct traces and
+  expressions, names, statement wiring); `python3 sample_form.py --dump 500 | node
+  sample_form_parity.mjs` (from `base-task/`) confirms the JS draws identical forms (503/503 incl.
+  large seeds on 2026-09-14). **Change both together.**
+- **`src/user/data/stimulus_pool.json`** = the v6 pool (§3 item 7).
+  **`src/user/data/practice_items.json`** = still Experiment 1's 3 practice items, written by
+  `base-task/practice.py`; they show every line and have no `hidden_line`.
 - **`InstructionsView.vue`** / **`quizQuestions.js`**: Experiment 1's user-approved text and 4-question
-  quiz. They say nothing about hidden lines.
-- **`PracticeView.vue`** feedback highlights the error step amber; with hidden lines it needs
-  deciding what to highlight when the error's line is the hidden one (hard).
+  quiz, unchanged. The text says "the step-by-step work a student wrote" and "every student makes
+  exactly one mistake, at one step of their work"; it never claims every line is shown, so it stays
+  accurate and says nothing about hidden lines, matching the decision not to tell participants.
+  Whether to keep it unchanged is still for the user to confirm (§9).
+- **`PracticeView.vue`** feedback highlights the error step amber. If practice items get a hidden
+  line, decide what the feedback highlights when the error's own line is the hidden one (hard).
 - **`src/builtins/thanks/ThanksView.vue`** Prolific completion code **`CNIEB9GV`** (old study). A new
   Prolific study issues a new code; replace it in both the `prolific` and `web` blocks before launch.
 - **`public/consent-form.pdf`** NYU IRB form (IRB-FY2026-11440, PI Mark Ho).
@@ -473,9 +491,9 @@ https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/?PROLIFIC_PID={{%PROL
 ```
 
 ### Checklist before running any participant
-- [ ] Hidden-line frontend, sampler, practice items, instructions and quiz built for the §0 design
-      (§9), merged, deployed, and the LIVE bundle verified to contain them.
-- [ ] Deploy secrets uploaded and a real deploy confirmed (§1).
+- [ ] Practice items, instructions and quiz settled for the §0 design (§9), merged to `main`,
+      deployed, and the LIVE bundle verified to contain the v6 pool and sampler.
+- [x] Deploy secrets uploaded and a real deploy confirmed (§1).
 - [ ] Prolific completion code replaced; `estimated_time` in `design.js` checked with the PI.
 - [ ] Consent and debrief: `design.js` points at `public/consent-form.pdf` and `public/debrief.pdf`,
       both present. Confirm with the PI that the IRB protocol covers Experiment 2.
@@ -509,14 +527,18 @@ happened; `gh run rerun <id> --failed` fixed it.
 # Pool (v6) and its checks
 cd base-task && python3 pool.py            # rebuild the pool (seed 2026, ~3 s); only if deliberately changing it
 cd base-task && python3 verify.py          # independent checks, incl. every hidden version (~2 s)
+cp base-task/stimulus_pool.json src/user/data/stimulus_pool.json   # after any rebuild (then cmp)
 
 # Observer
 cd base-task && python3 bayes.py           # full traces -> bayes_per_item.json (240 rows, expect 240/240)
 cd base-task && python3 bayes_hidden.py    # each item's own hidden line -> bayes_per_item_hidden.json (720 rows)
 cd base-task && python3 natural_position.py   # error position with no selection (~20 s)
 
-# Frontend helpers (Experiment 1 versions; NOT yet updated for v6)
-cd base-task && python3 sample_form.py     # sampler checks over 500 seeds (twin of sampleForm.js)
+# Sampler (v6)
+cd base-task && python3 sample_form.py     # 500-seed checks of the Python twin
+cd base-task && python3 sample_form.py --dump 500 | node sample_form_parity.mjs   # JS == Python?
+
+# Practice (Experiment 1 version; NOT yet updated)
 cd base-task && python3 practice.py        # check + write practice items to src/user/data/
 
 # Figures (from repo root; stale for v6, §6)
@@ -527,6 +549,7 @@ python3 analysis-Bayesian/plot_bayes_1misc_profile.py
 
 # Experiment
 npm run dev ; npm run build
+git push origin hidden-difficulty          # deploys the STAGING site
 git push origin main                       # DEPLOYS THE LIVE EXPERIMENT (ask first)
 npm run getdata ; npm run getrecruitment
 npm run upload_config                      # (re)push deploy secrets from env/*.local
@@ -536,19 +559,16 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
 
 ## 9. What is next (all on branch `hidden-difficulty`)
 
-1. **Sampler**, `sampleForm.js` and its twin `sample_form.py`, for the §0 form: 24 trials, the
-   2-1-1 difficulty table with the cyclic misconception rotation, at most one version per trace
-   (`base_id`), and (if the user confirms) each rule named in exactly 2 disagree trials. Same seeded
-   PRNG in both languages, checked over 500 seeds in both.
-2. **Copy the v6 pool** into `src/user/data/stimulus_pool.json` in the same commit as the sampler.
-3. **Decide the hidden-line display** with the user (§5 question 4), then render it in
-   `TraceJudgmentView.vue` and `PracticeView.vue` (and decide what practice feedback highlights when
-   the error's line is hidden).
-4. **Practice items with a hidden line** (`practice.py`), and instructions and quiz that explain it.
-5. **Figures** rewritten for v6 (§6).
-6. **Deploy**: secrets (§1), staging deploy of the branch, verify the live bundle; merge to `main`
-   only with the user's go-ahead.
-7. The §7 checklist.
+1. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
+   whether practice should also leave a line out (and, for a hard-style item, what the feedback
+   highlights when the error's own line is missing); then `practice.py` and `PracticeView.vue`.
+2. **Instructions and quiz.** Confirm with the user that Experiment 1's text stays as is (it never
+   mentions hidden lines, consistent with not telling participants).
+3. **Click through the staging site** end to end: a line really is missing on every trial, 24
+   trials, and `difficulty` / `hidden_line` / `base_id` are in the saved trial data.
+4. **Figures** rewritten for v6 (§6).
+5. `estimated_time`, Prolific code, IRB coverage (§7 checklist); merge to `main` only with the user's
+   go-ahead, then verify the live bundle.
 
 ---
 
@@ -559,14 +579,15 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
   participants. A previous study lost 19 paid participants to a pool that was regenerated locally but
   never pushed.
 - **Pushing `main` deploys the live experiment.** Ask the user before pushing experiment-material
-  changes to `main`.
+  changes to `main`. Pushing `hidden-difficulty` deploys only its staging site.
 - **A green deploy run does not mean it deployed.** With secrets missing, the `deploy` job is skipped
   and the workflow still passes. Check the `deploy` job's steps (`gh run view <id>`).
 - **Two pool copies can drift.** `base-task/stimulus_pool.json` is the source; the frontend reads
-  `src/user/data/stimulus_pool.json`. On this branch they currently differ on purpose (§3 item 7).
+  `src/user/data/stimulus_pool.json`. Keep them identical (§3 item 7).
 - **The model code is a copy of Experiment 1's** (§0). Do not assume a change in one repo reaches the
   other.
-- **`sampleForm.js` and `sample_form.py` must stay in sync.** The live experiment uses the JS one.
+- **`sampleForm.js` and `sample_form.py` must stay in sync.** The live experiment uses the JS one;
+  check with the parity command in §8.
 - **Never commit** `data/real-all-main-data.json`, anything under `data/private/`, `env/*.local`,
   `firebase/.service-account-key.json`, or any API key.
 - **User preferences:** finish a design discussion before writing code. On a surprising result, audit
