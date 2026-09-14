@@ -138,7 +138,9 @@ What each secrets step does:
 
 **Status as of 2026-09-14: secrets uploaded (by the user) and real deploys confirmed.** `main`:
 `workflow_dispatch` on 2026-09-13, `deploy` job ran (1m20s). `hidden-difficulty`: every push deploys;
-first on 2026-09-14 (`deploy` job 1m31s). Remember `deploy.yml` SKIPS the `deploy` job and still
+first on 2026-09-14 (`deploy` job 1m31s). After commit `8c50fbd` (sampler + hidden line) the staging
+deploy ran (`deploy` job 1m22s) and the LIVE staging bundle was checked: it contains the v6 items
+(`A000-E` ... `B119-H`) and `hidden_line`. Remember `deploy.yml` SKIPS the `deploy` job and still
 shows GREEN when secrets are missing, so always check with `gh run view <id>` that the **`deploy`
 job itself ran** (build and rsync, about a minute).
 
