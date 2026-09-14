@@ -1,22 +1,27 @@
 """
 pool.py
 
-Builds the v5 stimulus pool: 240 items, each on its own expression.
+Builds the v6 stimulus pool for Experiment 2 (hidden steps): 240 traces, each
+on its own expression, each shown in three hidden-line versions = 720 items.
 
-v5 vs v4 (changed 2026-09-13)
+v6 vs v5 (changed 2026-09-14)
 -----------------------------
-  * No matched pairs. v4 took the step-1 and the step-3 version of an item from
-    ONE expression, so every expression appeared twice in the pool. In v5 every
-    item has its own expression, and error position is manipulated BETWEEN
-    expressions, held level by the cell counts below. The cost: a position
-    effect can now partly reflect which expressions support step 1 vs step 3,
-    which the matched design ruled out.
-  * The look-alike guard (lookalike.py). A B item may not name a rule whose
-    statement plainly describes the error step. Every outside_bracket_first
-    error is a + or - done before an adjacent × or ÷ whose other operand is a
-    bracket, which a reader would also call "addition before division" and so
-    on, although the model's operator rules cannot make that step. v4 had no
-    such item only by chance.
+  * Error position is no longer selected. v5 kept only traces whose error was at
+    step 1 or 3. v6 picks, among a learner's usable traces on an expression, one
+    with the probability the learner's own policy gives it (uniform over its
+    legal moves at each step), so the position is wherever that path puts it.
+    The one restriction is that the error lands at step 2, 3 or 4 (below).
+  * Difficulty is which line is hidden, relative to the error step k (the
+    wrong move turns line s(k-1) into line s(k)):
+        easy    hide s(k+1)   the wrong move stays fully visible
+        medium  hide s(k-1)   the wrong result is visible, the line before it is not
+        hard    hide s(k)     the error's own line
+    The expression s0 and the answer s6 always stay visible, so all three
+    versions exist only when k is 2, 3 or 4.
+  * Every trace appears in all three versions, so difficulty is manipulated
+    WITHIN expression. A participant must see at most one version of any
+    expression; that is the sampler's job (base_id groups the versions).
+  * The observer checks run on every hidden version, not just the full trace.
 
 Design
 ------
@@ -24,26 +29,29 @@ Two categories, one misconception per trace:
   A - the statement NAMES the misconception in the trace   -> agree
   B - the statement names a FOIL                           -> disagree
 
-Grid, 240 items on 240 distinct expressions:
-  A: present(6) x position(2)            = 12 cells x 10 items = 120
-  B: present(6) x named(5) x position(2) = 60 cells x  2 items = 120
+Grid, 240 traces on 240 distinct expressions, x 3 versions = 720 items:
+  A: present(6)            =  6 cells x 20 traces = 120 traces -> 360 items
+  B: present(6) x named(5) = 30 cells x  4 traces = 120 traces -> 360 items
 
-So each of the four (category x position) pools the frontend samples from holds
-60 items, every rule is the true misconception in 40 items (10 per category x
-position), and the present x named heatmap has 20 on each diagonal cell and 4
-in each of the 30 off-diagonal cells.
+So every (misconception, difficulty) cell holds 20 agree and 20 disagree items,
+every (present, named, difficulty) B cell holds 4, and the present x named
+heatmap (over traces) has 20 on each diagonal cell and 4 off it.
 
-A foil must pass two checks on the trace it is shown with:
-  * the observer check: its marginal is at most UNSUPPORTED_MAX (0.35). Above
-    that the trace positively supports the rule, so "disagree" is not a
-    defensible key.
-  * the look-alike guard above.
+Checks
+------
+A trace can be an A item when
+  * no other single rule could have made its error step, and the named rule's
+    statement plainly describes that step (lookalike.py);
+  * in every hidden version the observer's marginal on the true rule is above
+    A_HIDDEN_MIN (0.5), so "agree" stays the ideal answer.
+A trace can be a B item naming foil f when
+  * on the full trace f's marginal is at most UNSUPPORTED_MAX (0.35) and f is
+    not a look-alike (both as in v5);
+  * in every hidden version f's marginal is still at most UNSUPPORTED_MAX, so
+    hiding a line never makes the foil plausible.
 
-student_name and belief_statement are placeholders: the frontend reassigns the
-24 names per participant (src/user/utils/sampleForm.js).
-
-N_OPS stays 6. It was forced by the matched pairs (no 5-op expression supports
-both step 1 and step 3 for outside_bracket_first); without pairs it is a choice.
+student_name and belief_statement are placeholders: the frontend reassigns them
+per participant.
 """
 
 import json
@@ -51,20 +59,29 @@ import random
 from collections import Counter
 from itertools import combinations
 
+from parser import build_dag
+from traces import _next_dags
+from misconceptions import dag_to_str
 from learner import MISCONCEPTION_FLIPS
 from inference import posterior_over_profiles, marginal_rule_probability
-from generator_constrained import generate_expression
-from find_pairs import pairs_for_expression, N_OPS, POSITIONS
+from hidden import hidden_posterior
+from generator_constrained import generate_expression, error_steps
+from find_pairs import sample_trace, N_OPS, POSITIONS
 from lookalike import error_step_rules
 
 IDS        = list(MISCONCEPTION_FLIPS.keys())
 HYPOTHESES = [()] + [(m,) for m in IDS] + list(combinations(IDS, 2))
 
-A_PER_CELL = 10   # per (present, position)         -> 120 A items
-B_PER_CELL = 2    # per (present, named, position)  -> 120 B items
+A_PER_CELL = 20   # traces per present rule           -> 120 A traces
+B_PER_CELL = 4    # traces per (present, named) pair  -> 120 B traces
+
+# the line each difficulty hides, as an offset from the error step k
+HIDE_OFFSET  = {'easy': +1, 'medium': -1, 'hard': 0}
+DIFFICULTIES = tuple(HIDE_OFFSET)
 
 REFUTED_MAX     = 0.15
 UNSUPPORTED_MAX = 0.35
+A_HIDDEN_MIN    = 0.5
 
 # a cell that cannot be filled stops the build after this many fruitless draws
 MAX_DRY_DRAWS = 300_000
@@ -86,6 +103,11 @@ STUDENT_NAMES = [
 ]
 
 
+def hidden_line(k, difficulty):
+    """Index of the line a difficulty hides, for an error at step k."""
+    return k + HIDE_OFFSET[difficulty]
+
+
 def _status(marginal):
     if marginal < REFUTED_MAX:
         return 'refuted'
@@ -94,12 +116,21 @@ def _status(marginal):
     return 'high'
 
 
+def marginals(trace, hide=None):
+    """{rule: observer marginal} with line `hide` hidden (None = every line shown)."""
+    if hide is None:
+        post = posterior_over_profiles(trace, profiles=HYPOTHESES)
+    else:
+        post = hidden_posterior(trace, hide, profiles=HYPOTHESES)
+    return {r: marginal_rule_probability(post, r) for r in IDS}
+
+
 def foil_options(trace, true_m):
     """
     ({foil_rule: (status, marginal)}, [look-alikes dropped]) for the rules
-    other than true_m. A rule is an option when the trace does not support it
-    (status is not 'high') and its statement does not plainly describe the
-    error step (lookalike.py).
+    other than true_m, on the FULL trace. A rule is an option when the trace
+    does not support it (status is not 'high') and its statement does not
+    plainly describe the error step (lookalike.py).
     """
     post = posterior_over_profiles(trace, profiles=HYPOTHESES)
     visible = error_step_rules(trace)
@@ -118,68 +149,91 @@ def foil_options(trace, true_m):
     return out, dropped
 
 
+def _one_step(line, rules):
+    return {dag_to_str(d) for d in _next_dags(build_dag(line), list(rules))}
+
+
+def a_item_ok(trace, m, k):
+    """The error step could be made by m alone, and m's statement plainly describes it."""
+    if any(trace[k] in _one_step(trace[k - 1], [r]) for r in IDS if r != m):
+        return False
+    return m in error_step_rules(trace)
+
+
 def build(seed=2026, verbose=True):
     rng = random.Random(seed)
 
-    a_need = {(m, p): A_PER_CELL for m in IDS for p in POSITIONS}
-    b_need = {(m, f, p): B_PER_CELL for m in IDS for f in IDS if f != m for p in POSITIONS}
-    chosen = []                 # (cell key, expression, trace, foil_status, marginal)
+    a_need = {m: A_PER_CELL for m in IDS}
+    b_need = {(m, f): B_PER_CELL for m in IDS for f in IDS if f != m}
+    chosen = []                 # (category, present, named, expression, trace, foil_status, hidden marginals)
     seen_expressions = set()
     draws = Counter()
-    guard_drops = Counter()     # (present, foil): traces the look-alike guard kept out of a cell
+    drops = Counter()           # why a candidate slot was refused
     dry = 0
-
-    def b_open(m, p):
-        return [f for f in IDS if b_need.get((m, f, p), 0) > 0]
 
     while any(a_need.values()) or any(b_need.values()):
         for m in IDS:
-            open_pos = tuple(p for p in POSITIONS if a_need[(m, p)] > 0 or b_open(m, p))
-            if not open_pos:
+            foils = [f for f in IDS if b_need.get((m, f), 0) > 0]
+            if not a_need[m] and not foils:
                 continue
 
             bp = 1.0 if m == 'outside_bracket_first' else 0.6
             expr = generate_expression(n_ops=N_OPS, bracket_prob=bp, rng=rng)
             draws[m] += 1
             dry += 1
-            # An expression is used by exactly ONE item, so a participant can
-            # never meet the same expression twice.
+            # An expression is used by exactly ONE trace, so a participant who
+            # sees one version of each trace never meets an expression twice.
             if expr is None or expr in seen_expressions:
                 continue
+            trace = sample_trace(expr, m, rng)
+            if trace is None:
+                continue
+            k = error_steps(trace)[0]
 
-            # Every cell this expression could fill, scored by the share of
-            # that cell still empty, so the scarcest cell wins (ties random).
-            slots = []
-            for p, trace in sorted(pairs_for_expression(expr, m, positions=open_pos).items()):
-                if a_need[(m, p)] > 0:
-                    slots.append((a_need[(m, p)] / A_PER_CELL, rng.random(),
-                                  ('A', m, m, p), trace, None, None))
-                wanted = b_open(m, p)
-                if not wanted:
-                    continue
+            # full-trace checks first; they are cheap
+            want_a = a_need[m] > 0
+            if want_a and not a_item_ok(trace, m, k):
+                drops['A: error step not unique to the rule, or not visibly it'] += 1
+                want_a = False
+            want_f = {}
+            if foils:
                 opts, dropped = foil_options(trace, m)
-                for f in wanted:
+                for f in foils:
                     if f in dropped:
-                        guard_drops[(m, f)] += 1
-                    if f in opts:
-                        st, marg = opts[f]
-                        slots.append((b_need[(m, f, p)] / B_PER_CELL, rng.random(),
-                                      ('B', m, f, p), trace, st, marg))
+                        drops['B: foil is a look-alike'] += 1
+                    elif f in opts:
+                        want_f[f] = opts[f][0]
+            if not want_a and not want_f:
+                continue
+
+            # then every hidden version
+            hid = {d: marginals(trace, hidden_line(k, d)) for d in DIFFICULTIES}
+            slots = []
+            if want_a:
+                if all(hid[d][m] > A_HIDDEN_MIN for d in DIFFICULTIES):
+                    slots.append((a_need[m] / A_PER_CELL, rng.random(), 'A', m, None))
+                else:
+                    drops[f'A: a hidden version leaves the true rule at or below {A_HIDDEN_MIN}'] += 1
+            for f, st in want_f.items():
+                if all(hid[d][f] <= UNSUPPORTED_MAX for d in DIFFICULTIES):
+                    slots.append((b_need[(m, f)] / B_PER_CELL, rng.random(), 'B', f, st))
+                else:
+                    drops[f'B: a hidden version lifts the foil above {UNSUPPORTED_MAX}'] += 1
             if not slots:
                 continue
 
-            _, _, key, trace, st, marg = max(slots, key=lambda s: s[:2])
-            cat, _, f, p = key
+            # the scarcest cell wins (ties random)
+            _, _, cat, named, st = max(slots, key=lambda s: s[:2])
             if cat == 'A':
-                a_need[(m, p)] -= 1
+                a_need[m] -= 1
             else:
-                b_need[(m, f, p)] -= 1
+                b_need[(m, named)] -= 1
             seen_expressions.add(expr)
-            chosen.append((key, expr, trace, st, marg))
+            chosen.append((cat, m, named, expr, trace, st, hid))
             dry = 0
 
         if verbose:
-            print(f"  remaining items: A={sum(a_need.values()):3d}  "
+            print(f"  remaining traces: A={sum(a_need.values()):3d}  "
                   f"B={sum(b_need.values()):3d}", end='\r')
         if dry > MAX_DRY_DRAWS:
             missing = {k: v for k, v in b_need.items() if v} | \
@@ -187,79 +241,95 @@ def build(seed=2026, verbose=True):
             raise SystemExit(f"\nstalled with cells unfilled: {missing}")
 
     if verbose:
-        print(f"  generated {len(seen_expressions)} expressions "
-              f"({sum(draws.values())} draws)              ")
-        print(f"  look-alike guard kept a trace out of a B cell {sum(guard_drops.values())} times: "
-              f"{dict(guard_drops)}")
+        print(f"  generated {len(seen_expressions)} traces "
+              f"({sum(draws.values())} expression draws)              ")
+        print("  candidate slots refused:")
+        for why, n in sorted(drops.items()):
+            print(f"    {n:6d}  {why}")
 
-    # emit items: A then B, each ordered by present rule, named rule, position
+    # emit: A then B, each ordered by present rule then named rule; one item per difficulty
     order = {m: i for i, m in enumerate(IDS)}
-    chosen.sort(key=lambda c: (c[0][0], order[c[0][1]], order[c[0][2]], c[0][3]))
-    items = []
-    for (cat, m, probed, p), expr, trace, st, marg in chosen:
-        name = STUDENT_NAMES[len(items) % len(STUDENT_NAMES)]
-        it = {
-            'id':                   f"{cat}{len(items):03d}",
-            'category':             cat,
-            'error_position':       p,
-            'expression':           expr,
-            'n_ops':                N_OPS,
-            'misconceptions':       [m],
-            'num_misconceptions':   1,
-            'trace':                trace,
-            'probed_misconception': probed,
-            'statement_correct':    cat == 'A',
-            'student_name':         name,
-            'belief_statement':     STATEMENT_TEMPLATES[probed].format(name=name),
-        }
-        if cat == 'B':
-            # recorded, NOT balanced: see the module docstring
-            it['foil_status']      = st
-            it['io_foil_marginal'] = round(marg, 4)
-        items.append(it)
+    chosen.sort(key=lambda c: (c[0], order[c[1]], order[c[2]]))
+    items, n_cat = [], Counter()
+    for idx, (cat, m, named, expr, trace, st, hid) in enumerate(chosen):
+        base_id = f"{cat}{n_cat[cat]:03d}"
+        n_cat[cat] += 1
+        name = STUDENT_NAMES[idx % len(STUDENT_NAMES)]
+        k = error_steps(trace)[0]
+        full = marginals(trace)
+        for d in DIFFICULTIES:
+            it = {
+                'id':                   f"{base_id}-{d[0].upper()}",
+                'base_id':              base_id,
+                'category':             cat,
+                'difficulty':           d,
+                'hidden_line':          hidden_line(k, d),
+                'error_position':       k,
+                'expression':           expr,
+                'n_ops':                N_OPS,
+                'misconceptions':       [m],
+                'num_misconceptions':   1,
+                'trace':                trace,
+                'probed_misconception': named,
+                'statement_correct':    cat == 'A',
+                'student_name':         name,
+                'belief_statement':     STATEMENT_TEMPLATES[named].format(name=name),
+                'io_marginal_full':     round(full[named], 4),
+                'io_marginal_hidden':   round(hid[d][named], 4),
+            }
+            if cat == 'B':
+                # recorded, NOT balanced (full trace)
+                it['foil_status'] = st
+            items.append(it)
     return items
 
 
 def summarise(items):
-    print(f"\n{len(items)} items, {len({i['expression'] for i in items})} distinct expressions")
-    print("  sampling pools (category x position), want 60 each:",
-          dict(Counter((i['category'], i['error_position']) for i in items)))
-    print("  trace lengths:", dict(Counter(len(i['trace']) for i in items)))
+    bases = {i['base_id']: i for i in items}
+    print(f"\n{len(items)} items, {len(bases)} traces, "
+          f"{len({i['expression'] for i in items})} distinct expressions")
+    print("  items per category x difficulty, want 120 each:",
+          dict(Counter((i['category'], i['difficulty']) for i in items)))
+    print("  hidden line per difficulty:",
+          {d: dict(sorted(Counter(i['hidden_line'] for i in items if i['difficulty'] == d).items()))
+           for d in DIFFICULTIES})
 
-    print(f"\n  items per PRESENT rule (want 40: 10 per category x position):")
+    print(f"\n  error step per present rule (traces; not selected, only kept in {POSITIONS}):")
     for m in IDS:
-        sub = [i for i in items if i['misconceptions'][0] == m]
-        c = Counter((i['category'], i['error_position']) for i in sub)
-        print(f"    {m:24s} n={len(sub):3d}  " +
-              "  ".join(f"{cat}/pos{p}={c[(cat, p)]:2d}"
-                        for cat in 'AB' for p in POSITIONS))
+        c = Counter(b['error_position'] for b in bases.values() if b['misconceptions'][0] == m)
+        n = sum(c.values())
+        print(f"    {m:24s} n={n:3d}  " +
+              "  ".join(f"step {p}: {c[p]:2d} ({c[p]/n:.0%})" for p in POSITIONS))
+    c = Counter(b['error_position'] for b in bases.values())
+    print(f"    {'all':24s} n={len(bases):3d}  " +
+          "  ".join(f"step {p}: {c[p]:2d} ({c[p]/len(bases):.0%})" for p in POSITIONS))
 
-    print(f"\n  present x named heatmap occupancy (diagonal = A, want 20; "
-          f"off-diagonal = B, want 4):")
-    grid = Counter((i['misconceptions'][0], i['probed_misconception']) for i in items)
-    empty = [(p, n) for p in IDS for n in IDS if grid[(p, n)] == 0]
+    print(f"\n  present x named heatmap over traces (diagonal = A, want 20; off-diagonal = B, want 4):")
+    grid = Counter((b['misconceptions'][0], b['probed_misconception']) for b in bases.values())
     header = "".join(f"{n[:9]:>11s}" for n in IDS)
     print(f"    {'present \\ named':>24s}{header}")
     for p in IDS:
         print(f"    {p:>24s}" + "".join(f"{grid[(p, n)]:>11d}" for n in IDS))
-    print(f"    EMPTY CELLS: {len(empty)}" + (f"  {empty}" if empty else "  (heatmap is full)"))
 
-    print("\n  refutation status, RECORDED not balanced (expect uneven):")
-    cs = Counter(i['foil_status'] for i in items if i['category'] == 'B')
-    print(f"    {dict(cs)}")
-    per = Counter((i['probed_misconception'], i['foil_status'])
-                  for i in items if i['category'] == 'B')
-    for f in IDS:
-        print(f"    {f:24s} refuted={per[(f,'refuted')]:2d}  "
-              f"unsupported={per[(f,'unsupported')]:2d}")
+    def stats(v):
+        return f"min {min(v):.3f}  mean {sum(v)/len(v):.3f}  max {max(v):.3f}"
+    print("\n  observer marginal on the named rule:")
+    for cat in 'AB':
+        full = [b['io_marginal_full'] for b in bases.values() if b['category'] == cat]
+        print(f"    {cat} full trace     {stats(full)}")
+        for d in DIFFICULTIES:
+            v = [i['io_marginal_hidden'] for i in items if i['category'] == cat and i['difficulty'] == d]
+            print(f"    {cat} {d:14s} {stats(v)}")
 
-    look = [i['id'] for i in items if i['category'] == 'B'
-            and i['probed_misconception'] in error_step_rules(i['trace'])]
-    print(f"\n  B items naming a look-alike foil (want 0): {len(look)}")
+    print("\n  refutation status, RECORDED not balanced (traces):",
+          dict(Counter(b['foil_status'] for b in bases.values() if b['category'] == 'B')))
+    look = [b['base_id'] for b in bases.values() if b['category'] == 'B'
+            and b['probed_misconception'] in error_step_rules(b['trace'])]
+    print(f"  B traces naming a look-alike foil (want 0): {len(look)}")
 
 
 if __name__ == '__main__':
-    print("Building v5 pool...")
+    print("Building v6 pool...")
     items = build()
     summarise(items)
     with open('stimulus_pool.json', 'w', encoding='utf-8') as fh:

@@ -1,98 +1,90 @@
 """
 find_pairs.py
 
-pairs_for_expression() is the core trace finder the pool builder calls: for one
-expression and misconception it returns a qualifying trace at each requested
-error position (exactly one expert-illegal move, passes validate_trace()).
+The trace finder the pool builder calls. For one expression and misconception it
+lists the learner's USABLE traces: the trace finishes, has exactly one
+expert-illegal move, reaches a different answer from the expert, and passes
+validate_trace(). Each trace comes with the probability the learner's own
+policy gives it (uniform over its legal moves at every step, the observer's
+pi_L), so the builder can pick one the way the learner would produce it.
 
-Since v5 (2026-09-13) the pool uses ONE position per expression, so the matched
-pair search below (one expression yielding BOTH a step-1 and a step-3 version)
-is kept only for yield statistics. Run directly to see per-misconception yields.
+v6 (2026-09-14): error position is no longer SELECTED to be step 1 or 3.
+POSITIONS is now the range the error may fall in, (2, 3, 4): the steps where all
+three hidden-line versions exist (see pool.py). Within that range the position
+is whatever path the learner takes. natural_position.py measures the spread.
+
+(The file name is historical: v3/v4 searched for matched step-1/step-3 pairs.)
 """
 
-import random
-import sys
-from collections import Counter
-
 from parser import build_dag
-from traces import generate_traces
+from traces import generate_traces, _next_dags, _is_done
+from misconceptions import dag_to_str
 from distance import correct_answer
-from learner import MISCONCEPTION_FLIPS
-from generator_constrained import generate_expression, validate_trace, error_steps
+from generator_constrained import validate_trace, error_steps
 
-IDS       = list(MISCONCEPTION_FLIPS.keys())
 N_OPS     = 6
-POSITIONS = (1, 3)
+POSITIONS = (2, 3, 4)
 
 
-def pairs_for_expression(expr, misconception, positions=POSITIONS, n_ops=N_OPS):
+def learner_paths(dag, misconceptions, _memo=None):
     """
-    {position: trace} for every requested position this expression supports.
+    [(trace, prob)] for every path the learner can take from dag, where prob is
+    the product of 1/|legal moves| over its steps. Same enumeration, and the
+    same order, as traces.generate_traces.
+    """
+    memo = {} if _memo is None else _memo
+    cur = dag_to_str(dag)
+    if cur in memo:
+        return memo[cur]
+    if _is_done(dag):
+        out = [([cur], 1.0)]
+    else:
+        nexts = _next_dags(dag, misconceptions)
+        if not nexts:
+            out = [([cur], 1.0)]   # stuck: partial trace
+        else:
+            w = 1.0 / len(nexts)
+            out = [([cur] + sub, w * p)
+                   for nd in nexts for sub, p in learner_paths(nd, misconceptions, memo)]
+    memo[cur] = out
+    return out
 
-    A trace qualifies when it finishes, reaches a DIFFERENT answer than the
-    expert, is displayable (validate_trace), and its ONLY expert-illegal move
-    is at the requested position.
+
+def usable_traces(expr, misconception, positions=POSITIONS, n_ops=N_OPS):
+    """
+    [(prob, trace)] for every usable trace whose single error is at a step in
+    `positions`. prob is the learner's probability of taking that path, not
+    renormalised.
     """
     try:
-        dag     = build_dag(expr)
-        expert  = generate_traces(dag, [])
-        learner = generate_traces(dag, [misconception])
+        dag = build_dag(expr)
+        right = correct_answer(generate_traces(dag, []))
+        paths = learner_paths(dag, [misconception])
     except Exception:
-        return {}
-    if not expert:
-        return {}
-
-    right = correct_answer(expert)
-    found = {}
-    for t in learner:
+        return []
+    out = []
+    for t, p in paths:
         if len(t) != n_ops + 1 or len(t[-1].split()) != 1:
             continue
         if t[-1] == right or not validate_trace(t):
             continue
         errs = error_steps(t)
         if len(errs) == 1 and errs[0] in positions:
-            found.setdefault(errs[0], t)
-    return found
+            out.append((p, t))
+    return out
 
 
-def find_matched_pairs(misconception, n_wanted, rng, max_draws=200_000):
-    """Sample expressions until n_wanted matched pairs are found."""
-    need_bracket = (misconception == 'outside_bracket_first')
-    out, draws, seen = [], 0, set()
-    while len(out) < n_wanted and draws < max_draws:
-        draws += 1
-        expr = generate_expression(
-            n_ops=N_OPS, bracket_prob=1.0 if need_bracket else 0.4, rng=rng)
-        if expr is None or expr in seen:
-            continue
-        seen.add(expr)
-        got = pairs_for_expression(expr, misconception)
-        if all(p in got for p in POSITIONS):
-            out.append({'expression': expr,
-                        'misconception': misconception,
-                        'traces': {p: got[p] for p in POSITIONS}})
-    return out, draws
-
-
-if __name__ == '__main__':
-    n_wanted = int(sys.argv[1]) if len(sys.argv) > 1 else 12
-    rng = random.Random(2026)
-    print(f"v3 matched pairs, n_ops={N_OPS}, positions={POSITIONS}, "
-          f"target {n_wanted} per misconception\n")
-    print(f"{'misconception':24s} {'found':>6s} {'draws':>8s} {'hit rate':>9s}")
-    all_pairs = {}
-    for m in IDS:
-        got, draws = find_matched_pairs(m, n_wanted, rng)
-        all_pairs[m] = got
-        rate = f"{len(got)/draws:.2%}" if draws else "n/a"
-        print(f"{m:24s} {len(got):6d} {draws:8,d} {rate:>9s}")
-
-    print("\n--- one matched pair per misconception ---")
-    for m, ps in all_pairs.items():
-        if not ps:
-            print(f"\n{m}: NONE FOUND")
-            continue
-        p = ps[0]
-        print(f"\n{m}   {p['expression']}")
-        for pos in POSITIONS:
-            print(f"   step-{pos}: " + " -> ".join(p['traces'][pos]))
+def sample_trace(expr, misconception, rng, positions=POSITIONS):
+    """
+    One usable trace, drawn with the learner's own path probabilities
+    (renormalised over the usable ones), or None if the expression has none.
+    """
+    cands = usable_traces(expr, misconception, positions)
+    if not cands:
+        return None
+    r = rng.random() * sum(p for p, _ in cands)
+    for p, t in cands:
+        r -= p
+        if r <= 0:
+            return t
+    return cands[-1][1]

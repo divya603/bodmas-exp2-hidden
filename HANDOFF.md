@@ -14,32 +14,76 @@ conversation history.
 
 **Repo:** `divya603/bodmas-exp2-hidden` (GitHub). **Experiment 2 of 3.** It asks whether people can
 tell which order-of-operations misconception a student holds from the student's written work when
-**one step of that work is hidden**, and whether it matters which step is hidden.
+**one line of that work is hidden**, and whether it matters where the hidden line sits relative to
+the student's error.
 
-**Status (2026-09-13): the design is NOT decided yet.** What exists:
-- the stimulus pool Experiment 2 is built on (240 items, identical to Experiment 1's, §3);
-- the ideal-observer machinery for hidden steps, already run over that pool (§4, §5);
-- a web experiment inherited from Experiment 1, which still shows EVERY step (§7).
+**Status (2026-09-14): design DECIDED, stimulus pool REBUILT (v6), frontend NOT yet rebuilt.**
+- **All of this is on branch `hidden-difficulty`** (pushed to origin). `main` still holds the initial
+  import (Experiment 1's v5 pool, errors at step 1 or 3). Merge to `main` only once the frontend is
+  done and the user agrees: pushing `main` deploys the live experiment.
+- Done on the branch: the v6 pool (720 items, §3), verified; the ideal observer run on it (§4, §5);
+  the natural-error-position analysis (§5).
+- Not done: the 24-trial sampler, the hidden-line rendering, practice items, instructions and quiz
+  (§9). `src/user/data/stimulus_pool.json` is still Experiment 1's v5 pool and the frontend still
+  shows every line. The Bayesian figures are stale (§6).
 Nothing has been deployed from this repo, and no human or LLM data exist.
 
 Provenance: seeded from `divya603/bodmas-exp1-position` at commit `862dea1` (its pool, model,
 observer, figures and finished Experiment 1 frontend), plus the hidden-step code from the archive repo
-`divya603/bodmas-model`, branch `pilot-v5-hidden` (commit `89dfe97`). ⚠️ **The pool here is a COPY of
-Experiment 1's.** If Experiment 1 ever rebuilds its pool, this repo does not follow automatically;
-decide then whether it should, and rerun everything in §4 and §5.
+`divya603/bodmas-model`, branch `pilot-v5-hidden` (commit `89dfe97`). The v6 pool is built here and
+is no longer a copy of Experiment 1's, but the **model code** (parser, traces, learner, generator) still
+is: a model change in Experiment 1 does not reach this repo automatically.
 
-### The user's proposed design (2026-09-09, not yet final)
-The same stimuli as Experiment 1, but with one step of the student's work hidden, **either step 2 or
-step 4**. Factors, meant to be fully crossed: misconception present (6) x error position (step 1 or
-3) x what the statement names (the present rule or a foil) x which step is hidden (2 or 4). §5 has
-the measured consequences and the open questions; read it before building anything.
+### The design (decided with the user, 2026-09-14)
+- **Error position is NOT selected.** Each trace is drawn the way the learner would produce it (§3),
+  so the error lands wherever that path puts it, restricted to steps 2 to 4 (below). Experiment 1
+  forced it to step 1 or 3; §5 has the measurement that motivated dropping that.
+- **Difficulty = which line is hidden, relative to the error step k** (the wrong move turns line
+  s(k-1) into line s(k)). Exactly one line is hidden per trial:
+
+  | difficulty | hides | what the participant loses |
+  |---|---|---|
+  | easy | s(k+1) | the line after the error; the wrong move stays fully visible |
+  | medium | s(k-1) | the line before the error; the wrong result is visible, not the line it came from |
+  | hard | s(k) | the error's own line |
+
+  The expression s0 and the answer s6 always stay visible, so all three versions exist only when k
+  is 2, 3 or 4. The easy < medium < hard ordering is the user's hypothesis about people; the ideal
+  observer barely distinguishes them (§5).
+- **Pool:** 240 traces x 3 hidden versions = 720 items, 360 agree / 360 disagree. Difficulty is
+  WITHIN expression (the same work in all three versions). No no-hide control: the effect of hiding
+  vs not hiding can only be measured against Experiment 1.
+- **Per participant: 24 trials, every one on a different expression** (never two versions of one
+  trace). 4 per misconception, 8 per difficulty, 12 agree / 12 disagree; within each misconception
+  2 agree / 2 disagree; within each difficulty 4 / 4. 36 trials (one per cell) was rejected by the
+  user as too long to keep concentration.
+- Misconception x difficulty cannot be balanced inside 24 trials (4 trials per misconception do not
+  split three ways). So each misconception gets one difficulty twice (once agree, once disagree) and
+  the other two once:
+
+  | row | easy | medium | hard |
+  |---|---|---|---|
+  | misconception 1 | agree + disagree | agree | disagree |
+  | misconception 2 | agree + disagree | disagree | agree |
+  | misconception 3 | agree | agree + disagree | disagree |
+  | misconception 4 | disagree | agree + disagree | agree |
+  | misconception 5 | agree | disagree | agree + disagree |
+  | misconception 6 | disagree | agree | agree + disagree |
+
+  The sampler rotates which misconception sits in which row (cyclically over 6), so over every 6
+  participants each of the 36 misconception x difficulty x statement cells appears exactly 4 times.
+- **Proposed by Claude, not yet explicitly confirmed by the user:** choose the named wrong rules so
+  each rule is named in exactly 2 disagree trials per participant. Then every belief statement
+  appears 4 times per participant (2 true, 2 false) and its wording never hints at the answer.
+- **Still open:** how the hidden line is displayed (an ellipsis line, "a step is not shown", nothing)
+  and whether participants are told a line is missing.
 
 ### The task (one trial)
 A participant sees a **math expression**, a **student's step-by-step work** containing exactly one
-order-of-operations misconception, and a **belief statement** claiming the student holds a
-particular misconception. They rate on a **6-point Likert scale** (1 = Strongly Disagree, 6 =
-Strongly Agree) how well the statement explains the work, NOT whether the final answer is right.
-Scoring collapses the rating at **>= 4 = agree**. In Experiment 2, one line of the work is hidden.
+order-of-operations misconception, with **one line hidden**, and a **belief statement** claiming the
+student holds a particular misconception. They rate on a **6-point Likert scale** (1 = Strongly
+Disagree, 6 = Strongly Agree) how well the statement explains the work, NOT whether the final answer
+is right. Scoring collapses the rating at **>= 4 = agree**.
 
 ### The 6 misconceptions
 | id | meaning |
@@ -63,6 +107,7 @@ Run these in order, once, right after cloning:
 ```bash
 git clone https://github.com/divya603/bodmas-exp2-hidden.git
 cd bodmas-exp2-hidden
+git checkout hidden-difficulty   # the v6 work lives here until it is merged
 npm run get_secrets          # fetch the 5 gitignored lab files from codec-lab/smile-secrets
 npm run upload_config        # push the app + deploy config into THIS repo's GitHub secrets
 npm run setup_project        # npm install + git hooks (post-commit / post-checkout)
@@ -84,7 +129,7 @@ What each secrets step does:
   `SLACK_WEBHOOK_URL`, `SLACK_WEBHOOK_ERROR_URL`) to whatever repo `origin` points at. Only needed
   once per repo, not once per clone.
 
-**Status as of 2026-09-13: secrets NOT yet uploaded to this repo, so nothing has been deployed.**
+**Status as of 2026-09-14: secrets NOT yet uploaded to this repo, so nothing has been deployed.**
 `deploy.yml` handles missing secrets gracefully: its `check-secrets` job SKIPS the `deploy` job and
 the run still shows GREEN, with a "secrets are not configured, skipping deploy" notice. After
 `force_deploy`, confirm with `gh run list` then `gh run view <id>` that the **`deploy` job itself
@@ -100,7 +145,9 @@ switch with `nvm use 20`.
 What changes automatically because this is a separate repo:
 - **The deploy URL.** Path is `/<owner>/<repo>/<branch>/`, so main deploys to
   `https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/`, and the short codename URL is derived
-  from the same path (printed in the deploy log). Any Prolific link must point here.
+  from the same path (printed in the deploy log). Any Prolific link must point here. Once secrets
+  exist, pushing `hidden-difficulty` deploys a separate staging site at
+  `.../bodmas-exp2-hidden/hidden-difficulty/`.
 - **Where the data lands.** Firestore's `projectRef` (`src/core/config.js`) is derived from the
   deploy path, so this experiment's data is stored under its own key and cannot mix with
   Experiment 1's.
@@ -111,7 +158,7 @@ What changes automatically because this is a separate repo:
 
 ```
 base-task/         The model, the pool, the ideal observer, and the hidden-step inference. §3 to §5.
-analysis-Bayesian/ Ideal-observer figures. §6.
+analysis-Bayesian/ Ideal-observer figures. §6 (stale on this branch).
 src/               The Smile/Vue web experiment (inherited from Experiment 1). §7.
 scripts/           Smile deploy/data scripts.
 public/            consent-form.pdf, debrief.pdf served by the frontend.
@@ -122,7 +169,7 @@ docs/ tests/ plugins/ analysis/ plans/   Smile framework infrastructure, not our
 
 ---
 
-## 3. The model and the base pool (`base-task/`)
+## 3. The model and the pool (`base-task/`)
 
 ### Model core
 - **`dag.py`** FlatDAG representation of an expression (atoms + op nodes, shared references).
@@ -139,6 +186,14 @@ docs/ tests/ plugins/ analysis/ plans/   Smile framework infrastructure, not our
 - **`inference.py`** `posterior_over_profiles(trace)` and `marginal_rule_probability()`; see §4.
 - `Bodmas_Modeling.pdf` is the written description of the model.
 
+### How the error position comes about
+A misconception only changes which moves the learner thinks are legal in particular windows (e.g.
+`add_before_mul` makes `+` fireable before an adjacent `×` and that `×` unfireable). At each step the
+learner may take ANY of its legal moves, so the same learner on the same expression can make its one
+error at any step from 1 to 5, depending on the order it works in. **Position is a property of the
+path, not of the expression or the rule.** (Step 6 can never hold the error: one operation is left
+and its only move is legal.) v5 selected paths with the error at step 1 or 3; v6 does not select.
+
 ### The constrained generator and helpers
 - **`generator_constrained.py`** draws numbers constructively left to right with one step of
   operator lookahead: subtraction operands ordered, division exact with a proper divisor (no `÷ 1`,
@@ -151,77 +206,106 @@ docs/ tests/ plugins/ analysis/ plans/   Smile framework infrastructure, not our
     ⚠️ Do NOT reimplement this as expert trace-edge membership. Once the learner diverges, every
     later state is off the expert's trace tree, so edge membership marks all subsequent steps as
     errors.
-- **`find_pairs.py`** `pairs_for_expression(expr, misconception)` returns `{position: trace}` for
-  the requested error positions an expression supports (exactly one expert-illegal move, at that
-  step, a different answer from the expert, passes `validate_trace`). `POSITIONS = (1, 3)`.
+- **`find_pairs.py`** (name historical) the trace finder. `learner_paths(dag, L)` lists every path
+  with the learner's probability of taking it (product of 1/|legal moves|, the observer's pi_L).
+  `usable_traces(expr, m)` keeps the usable ones (finishes, exactly one expert-illegal move, a
+  different answer from the expert, passes `validate_trace`) with the error in `POSITIONS = (2, 3, 4)`.
+  `sample_trace(expr, m, rng)` draws one of those with the learner's own probabilities.
 - **`lookalike.py`** `error_step_rules(trace)`: the statements that plainly describe a trace's error
   step, read from the surface of the two lines, not from the model. Drives the look-alike guard.
+- **`natural_position.py`** where the error lands with no position selection (§5). Run from
+  `base-task/`, about 20 s at the default 3000 expressions per rule.
 
-### The base pool: `pool.py` -> `stimulus_pool.json`
-**240 items, each on its own expression**, seed 2026, byte-identical to Experiment 1's pool
-(Experiment 1 calls it "v5"). Every item shows all 7 lines (`s0` expression through `s6` answer);
-hiding is applied on top of it, in inference now (§5) and in the frontend later (§9).
+### The pool: `pool.py` -> `stimulus_pool.json` (v6)
+**720 items = 240 traces x 3 hidden versions, each trace on its own expression, seed 2026.**
+
+How a trace is chosen: for misconception m, draw an expression (`generate_expression`, 6 ops,
+`bracket_prob` 1.0 for `outside_bracket_first` else 0.6); `sample_trace` draws one usable trace with
+the error at step 2 to 4 by the learner's own path probabilities; keep it if it passes the checks for
+some still-open cell (the scarcest cell wins, ties random). Builds in about 3 s.
 
 Grid:
 ```
-A: present(6) x position(2)            = 12 cells x 10 items = 120
-B: present(6) x named(5) x position(2) = 60 cells x  2 items = 120
+A: present(6)            =  6 cells x 20 traces = 120 traces -> 360 items
+B: present(6) x named(5) = 30 cells x  4 traces = 120 traces -> 360 items
 ```
-Category **A** names the present misconception (correct answer agree), **B** names an absent foil
-(disagree). Each rule is present in 40 items: 10 each of (A, step 1), (A, step 3), (B, step 1),
-(B, step 3), and within its 20 B items the named foil is balanced 5 foils x 2 positions x 2 items, so
-the present x named heatmap has no empty cells. Error position is BETWEEN expressions (no expression
-appears twice). 240 distinct expressions; every trace is 6 steps with exactly one expert-illegal
-move; every learner answer differs from the correct one; numbers 1 to 930, no negatives, decimals
-or zeros. In every A item only the named rule could make the error step and it visibly shows it; no
-B item names a look-alike foil.
+So: 120 items per category x difficulty; 20 per misconception x difficulty x category; 4 per
+present x named x difficulty B cell; the present x named heatmap over traces has 20 on the diagonal
+and 4 in every off-diagonal cell (none empty). Category **A** names the present misconception
+(correct answer agree), **B** names an absent foil (disagree).
 
-Item fields: `id, category, error_position, expression, n_ops, misconceptions, num_misconceptions,
-trace, probed_misconception, statement_correct, student_name, belief_statement`, plus on B items
-only `foil_status` and `io_foil_marginal`. `student_name` and `belief_statement` are placeholders
-that the frontend sampler reassigns. There is no `pair_id` in this pool.
+Checks (the builder applies them; `verify.py` re-derives them):
+- **A trace:** no other single rule could have made the error step, and the named rule plainly
+  describes it; in every hidden version the observer's marginal on the true rule is above
+  `A_HIDDEN_MIN` = 0.5, so "agree" stays the ideal answer.
+- **B trace naming foil f:** on the full trace f's marginal is at most `UNSUPPORTED_MAX` = 0.35 and f
+  is not a look-alike; in every hidden version f's marginal is still at most 0.35.
+- Every trace: 6 steps, exactly one expert-illegal move at step 2 to 4, learner answer differs from
+  the correct one, numbers 1 to 918 shown, no negatives, decimals or zeros.
+
+What came out (seed 2026): the builder refused 53 candidate foils as look-alikes and 6 because a
+hidden version lifted the foil above 0.35; it never refused an A trace. Error step over the 240
+traces: step 2: 80, step 3: 79, step 4: 81. That near-even split is chance (seeds 1 to 5 give e.g.
+80/64/96, 70/83/87, 70/90/80). Per rule it is uneven, e.g. `outside_bracket_first` 13/21/6,
+`same_priority_rtl` 11/11/18.
+
+Item fields: `id` (e.g. `A000-E`), `base_id` (`A000`, shared by a trace's three versions),
+`category, difficulty` (`easy`/`medium`/`hard`), `hidden_line` (index into `trace`),
+`error_position, expression, n_ops, misconceptions, num_misconceptions, trace` (all 7 lines; the
+frontend hides `trace[hidden_line]`), `probed_misconception, statement_correct, student_name,
+belief_statement, io_marginal_full, io_marginal_hidden`, plus on B items `foil_status` (full trace).
+v5's `io_foil_marginal` is gone (it equals `io_marginal_full` on B items). `student_name` and
+`belief_statement` are placeholders the sampler reassigns.
 
 **Answer-leak fields** (never show a solver or a participant): `statement_correct, misconceptions,
-probed_misconception, category, num_misconceptions, foil_status, io_foil_marginal`.
+probed_misconception, category, num_misconceptions, foil_status, io_marginal_full,
+io_marginal_hidden`. `id` and `base_id` start with A or B, so they encode the category too: never
+display them.
 
-### ⚠️ Things about the base pool that will bite you
+### ⚠️ Things about the pool that will bite you
 1. **6 operators.** At 4 ops `outside_bracket_first` never reaches step 3 at all; never go below 5.
-   Hiding a line needs an interior line to hide, which 6-step traces have plenty of.
-2. **Position is SELECTED, not constructed.** A misconception decides what happens when the learner
-   touches its window, not when; one expression yields traces with the error anywhere from step 1 to
-   5, and the builder keeps step 1 and step 3. Position is also between expressions, so a position
-   effect in people partly reflects which expressions support each position. Include item as a random
-   effect in analyses.
-3. **`foil_status` is RECORDED but NOT BALANCED.** Pool-wide 58 refuted / 62 unsupported, lopsided
-   per foil. **Never split a figure or analysis by it.**
-4. **The pool excludes the hardest foils.** `pool.py: foil_options()` drops any foil whose marginal
-   exceeds 0.35, so no B item names a rule the trace positively supports (§6).
-5. **Most of the evidence sits in two or three of the 6 steps.** Summed over all 240 traces, the
-   number of the 22 hypotheses each step eliminates is: step 1 2532, step 2 485, step 3 1143, step 4
-   90, step 5 81, step 6 0. Steps 1 and 3 (the error positions) carry 85%; the forced last step
-   carries none. **This one fact explains most of §5.**
+   Hiding needs a line on both sides of the error, which is why the error is kept to steps 2 to 4.
+2. **Position is not selected, but not controlled either.** It follows each rule's natural spread
+   within steps 2 to 4, so it is tied to misconception. All three difficulties share the same traces,
+   so it cannot confound difficulty. Record `error_position` as a covariate and include the trace
+   (`base_id`) as a random effect.
+3. **`foil_status` is RECORDED but NOT BALANCED** (v6: 60 refuted / 60 unsupported traces overall,
+   lopsided per foil). **Never split a figure or analysis by it.**
+4. **The pool excludes the hardest foils.** `foil_options()` drops any foil whose marginal exceeds
+   0.35, so no B item names a rule the trace positively supports (§6).
+5. **Correct steps carry little evidence.** Measured on the v5 pool: summed over its 240 traces, the
+   number of the 22 hypotheses each step eliminates was step 1 2532, step 2 485, step 3 1143, step 4
+   90, step 5 81, step 6 0, i.e. the error steps (1 and 3 there) carried 85%. This is why hiding a
+   line away from the error changes nothing for the observer (§5).
 6. **`outside_bracket_first` errors look like the operator rules** (e.g. `4 + 8 ÷ (4 - 1)` ->
    `12 ÷ (4 - 1)` reads as "addition before division" but the model says only outside() can make
    it). Guarded: `foil_options()` drops look-alike foils and `verify.py` asserts none are named.
+7. **`src/user/data/stimulus_pool.json` is still the v5 pool on this branch.** Copy the v6 pool
+   there only together with the new sampler; the current `sampleForm.js` expects positions 1/3.
 
 ### Verification: `verify.py`
 Independent verifier; run after ANY regeneration (`cd base-task && python3 verify.py`, exits
-non-zero on failure). Re-derives every trace from its expression, re-tests every step for expert
-legality, re-runs the observer, and re-checks statement wiring, expression uniqueness, the four
-60-item sampling pools, the exact cell counts, the A-item uniqueness check and the look-alike guard.
-Currently ALL CHECKS PASSED (checked in this repo 2026-09-13). It checks the base pool only; it knows
-nothing about hidden steps.
+non-zero on failure, about 2 s). Per trace: re-derives the trace from its expression, re-tests every
+step for expert legality, checks the error is at step 2 to 4, re-runs the full-trace observer and the
+A uniqueness / visibility checks, foil checks and look-alike guard. Per item: the hidden line matches
+the difficulty (easy s(k+1), medium s(k-1), hard s(k)), the three versions of a trace agree on every
+shared field, and the hidden-version observer is recomputed with `multi_hidden_posterior` (the
+forward-DP route, not the builder's two-step route) to check the stored marginal, that the expert
+stays eliminated, and that the key is still the observer's answer. Globally: every expression in one
+trace, and every cell count above. Currently ALL CHECKS PASSED (2026-09-14, branch
+`hidden-difficulty`).
 
 ---
 
 ## 4. The Bayesian ideal observer
 
-### Fully observed (the base pool as shown in Experiment 1)
-`base-task/bayes.py` -> `base-task/bayes_per_item.json`. The observer weighs **22 hypotheses**
-(expert + 6 singletons + 15 pairs) at epsilon 0 (`DEFAULT_EPSILON = 0.0`: every trace is generated
-deterministically, so a forbidden step eliminates its hypothesis outright). No item is generated by a
-pair; the pairs let the observer represent "might ALSO hold rule f", which is what separates "no
-evidence either way" from "had a chance and did not". Keep 22.
+### Fully observed: `base-task/bayes.py` -> `base-task/bayes_per_item.json`
+One row per TRACE (240; `id` = `base_id`), since the three versions share the full trace. The
+observer weighs **22 hypotheses** (expert + 6 singletons + 15 pairs) at epsilon 0
+(`DEFAULT_EPSILON = 0.0`: every trace is generated deterministically, so a forbidden step eliminates
+its hypothesis outright). No trace is generated by a pair; the pairs let the observer represent
+"might ALSO hold rule f", which is what separates "no evidence either way" from "had a chance and
+did not". Keep 22.
 
 ```
 P(L | s0..s6) ∝ P(L) · prod_t pi_L(s_{t+1} | s_t)        pi_L uniform over L's legal moves
@@ -230,13 +314,13 @@ P(R ∈ L | trace) = sum_L P(L | trace) · [R ∈ L]
 The observer sees only the trace; the belief statement is NOT an input and only picks which of the
 six marginals is read off. Category A vs B is therefore not a difference in its computation.
 
-**Result: 240/240 = 100%.** A: marginal on the present rule exactly 1.000 in all 120. B: P(agree)
-0.000, marginal min 0.000 / mean 0.138 / max 0.333.
+**Result (v6): 240/240 = 100%.** A: marginal on the present rule exactly 1.000 in all 120. B:
+P(agree) 0.000, marginal min 0.000 / mean 0.134 / max 0.333.
 
-⚠️ Use `probed_marginal` as the observer's response, never `map_profile` (on 35 of 240 items the MAP
+⚠️ Use `probed_marginal` as the observer's response, never `map_profile` (on 17 of 240 traces the MAP
 pairs the true rule with `outside_bracket_first`; no correctness or marginal is affected).
 
-### With a hidden step: `base-task/hidden.py`
+### With a hidden line: `base-task/hidden.py`
 Hiding line `s_k` means neither the observer nor the participant sees it. The two likelihood factors
 that touch `s_k` collapse into a marginal over every value it could have taken:
 ```
@@ -245,109 +329,105 @@ P(observed | L, s0) = [prod_{t != k-1, k} pi_L(s_{t+1} | s_t)] · sum_{s_k} pi_L
 `two_step_prob`, `hidden_log_likelihood`, `hidden_posterior(trace, k)` handle one hidden line;
 `gap_prob` (forward DP over every intermediate path), `multi_hidden_log_likelihood` and
 `multi_hidden_posterior(trace, hide_set)` handle ANY set of hidden lines. The two paths agree
-exactly. `s0` and the final answer must stay visible. `visible_trace(trace, k)` returns the lines a
-participant would see. Hiding can only flatten the posterior, never sharpen it.
+exactly (`verify.py` uses one, the builder the other). `s0` and the final answer must stay visible.
+`visible_trace(trace, k)` returns the lines a participant would see. Hiding can only flatten the
+posterior, never sharpen it.
+
+Why the expert is never revived by hiding one line: every trace's answer differs from the correct
+one, and expert-legal moves always reach the correct answer, so no expert path can bridge a gap and
+still end at the trace's answer. The visible work always contains an error. `verify.py` asserts it.
 
 ---
 
-## 5. Hidden steps: what the observer does, and what it means for the design
+## 5. Hidden steps: findings
 
-All numbers below are on this repo's 240-item pool (recomputed 2026-09-13; an earlier version of
-these findings was measured on an older pool and is superseded).
+### v6 pool: `base-task/bayes_hidden.py` -> `base-task/bayes_per_item_hidden.json`
+720 rows, one per item, each with that item's own line hidden: `id, base_id, category, difficulty,
+error_position, hidden_line, n_lines_shown, true_misconception, probed_misconception,
+statement_correct, marginal_full, probed_marginal, delta_vs_full, observer_agrees,
+observer_correct`.
 
-### Per-item marginals: `base-task/bayes_hidden.py` -> `base-task/bayes_per_item_hidden.json`
-960 rows (240 items x 4 conditions) with `probed_marginal`, `delta_vs_full`, `observer_agrees`,
-`observer_correct`, `hidden_line`, `n_lines_shown`. Conditions: `none` (every line shown), `s2`, `s4`,
-and `error_line` (hide the line PRODUCED by the error: `s1` when the error is at step 1, `s3` when at
-step 3).
-
-| condition | accuracy | category A marginal | category B marginal |
+| difficulty | accuracy | category A marginal | category B marginal |
 |---|---|---|---|
-| none | 240/240 | 1.000 flat | mean 0.138 |
-| **s2** | 240/240 | **1.000 flat** | mean 0.137 |
-| **s4** | 240/240 | **1.000 flat** | mean 0.140 |
-| error_line | 240/240 | mean 0.985, min 0.556 | mean 0.138 |
+| (no hiding) | 240/240 | 1.000 flat | mean 0.134, max 0.333 |
+| easy | 240/240 | 1.000 flat | mean 0.133, max 0.333 |
+| medium | 240/240 | 1.000 flat | mean 0.133, max 0.333 |
+| hard | 240/240 | mean 0.989, min 0.600 | mean 0.134, max 0.333 |
 
-**The observer is 240/240 correct in every condition: no hidden line ever flips a judgement.**
+- Items whose marginal moves at all: easy A 0 / B 7, medium A 0 / B 4, hard A 5 / B 2 (of 120 each).
+- **All 5 moved A items are `outside_bracket_first` in the hard version**: A114-H 0.600, A107-H
+  0.714, A111-H 0.714, A110-H 0.789, A104-H 0.889. That rule's hard mean is 0.935; every other
+  rule x difficulty cell is 1.000.
+- The observer is correct on all 720 by construction (the pool requires it, §3).
 
-### ⚠️ MEASURED: hiding steps removes almost no information from the ideal observer
-- **Hiding s2 or s4 (the proposed manipulation) changes the marginal on 7 of 480 item-by-hide
-  combinations, all in category B. Category A stays at exactly 1.000.**
-- Sweeping every hideable line, the only category-A items that ever move are 1 (hide `s1`, error at
-  step 1) and 5 (hide `s3`, error at step 3), i.e. only when the hidden line is the one the error
-  produced.
-- Hiding the error's own line moves 10 items in all: 6 in category A, **all six
-  `outside_bracket_first`** (A110 1.000 -> 0.556, A111 0.667, A114 0.706, A115 0.714, A106 0.727, A112
-  0.857), plus 4 B items (2 `sub_before_mul`, 2 `sub_before_div` traces).
-- Category A with more hidden: hide s2 and s4 together, still 1.000; hide s1, s3 and s5, 0.986; hide
-  ALL FIVE intermediate lines (only the expression and the answer shown), 0.933, with 18 of 120 below
-  1.000 and 3 below 0.5.
-- The work without the final answer: still 1.000. **Only the first step shown**: error-at-step-1
-  items 1.000, error-at-step-3 items **0.333**. The one thing that really degrades the observer is not
-  having reached the error yet.
+**What it means.** The observer does not order easy < medium < hard. It is flat on easy and medium
+and dips only in one rule's hard cell. The difficulty ordering is a hypothesis about people: any
+effect is processing cost (people cannot marginalise over paths), not lost information. The Bayes
+arm therefore contributes almost no gradient on difficulty, as it contributes none on position.
 
-**Why. Two reasons, for different cells; do not merge them.**
-1. *Hiding a correct step (s2 or s4 with the error elsewhere): correct steps carry almost no
-   evidence.* Steps 1 and 3 carry 85% of all hypothesis eliminations and step 6 none (§3 item 5).
-   When the error is at step 1, the observer still sees the illegal move `s0 -> s1` directly and
-   infers nothing about the hidden correct step.
-2. *Hiding a line next to the error (error at step 3 with s2 hidden, or the error's own line): the
-   gap is pinned by its endpoints.* Marginalising over the hidden state keeps only profiles that can
-   bridge `s_{k-1} -> s_{k+1}` in two steps, and usually only the true profile can, so the elimination
-   still happens. The exception is `outside_bracket_first`: it is the only rule that removes options,
-   so its evidence is the only kind a single hidden line can dilute.
-The information is also redundant across routes: the work alone identifies the rule (1.000 without
-the answer) and the expression plus the answer nearly does (0.933).
+### Where the error lands without selection: `base-task/natural_position.py` (2026-09-14)
+3000 expressions per rule from the pool's generator; the learner chooses uniformly among its legal
+moves. Most learner paths are not usable: 52% never show the error at all, 17% show two or more
+errors, 16% have one error but reach the correct answer or undisplayable numbers; about 15% are
+usable. Among usable paths, a pool built with no position filter would put the error at (% of items):
 
-### What this means for the design
-Hiding is **normatively almost free**. That is a legitimate framing for the human arm: people cannot
-marginalise over paths, so any effect of hiding is pure processing cost, just like error position in
-Experiment 1. But it means **the Bayes arm is a flat line on this factor**, as it is on position, so
-the ideal observer contributes no gradient to a human-vs-observer comparison. Decide deliberately
-whether that is acceptable. If observer-side variance is wanted, hiding is the wrong lever; it would
-need genuine ambiguity (traces that several profiles produce identically).
+| misconception | step 1 | step 2 | step 3 | step 4 | step 5 |
+|---|---|---|---|---|---|
+| add_before_mul | 11 | 15 | 19 | 20 | 36 |
+| add_before_div | 9 | 11 | 20 | 30 | 30 |
+| sub_before_mul | 20 | 21 | 22 | 27 | 10 |
+| sub_before_div | 28 | 23 | 21 | 22 | 7 |
+| same_priority_rtl | 12 | 15 | 16 | 19 | 38 |
+| outside_bracket_first | 11 | 26 | 43 | 21 | 0 |
+| **all** | **15** | **18** | **23** | **23** | **21** |
 
-### Open design questions (the user's to decide; discuss before building)
-1. **Which step is hidden, absolute or relative?** The proposal is "step 2 or step 4". But hiding `s2`
-   sits next to a step-3 error and not a step-1 error, so it is a different manipulation at the two
-   error positions. A relative definition (hide the error's own line vs a line far from it) crosses
-   cleanly with position, and is the only version where the observer moves at all.
-2. **How many items, and is there a no-hide control?** The pool is already balanced on
-   misconception x position x statement, so crossing in the hidden factor is automatic; no rebuild
-   needed.
-   - **480 items**: both hidden versions of all 240 (A = 6 x 2 x 2 = 24 cells x 10; B = 6 x 5 x 2 x 2
-     = 120 cells x 2). Hiding becomes within-expression, but each expression then backs 2 items, so a
-     participant must see at most one of them.
-   - **240 items**: one hidden version per item (A 5 per cell, B 1 per cell; B gets thin).
-   - A **no-hide control** as a third level gives 360 or 720. Without it, the effect of hiding can only
-     be measured against Experiment 1 as a separate study.
-3. **How many trials per participant?** Experiment 1's form is exactly 24 = 6 misconceptions x 2
-   positions x 2 statement types, one trial per cell. A fourth, 2-level factor does not fit at one trial
-   per cell: it needs 48 trials, or a 24-trial form that covers only half the cells per person.
-4. **How the hidden line is displayed** (an ellipsis line, "a step is not shown", nothing at all), and
-   whether participants are told a step is missing.
+On the v5 pool's own expressions, the learner left to itself would have put the error at step 1 only
+40% of the time on the step-1 items, and at step 3 only 45% of the time on the step-3 items.
+
+### Earlier findings on the v5 pool (errors at step 1 or 3; superseded, still explanatory)
+Conditions `none`, `s2`, `s4`, `error_line` on the 240 v5 items: 240/240 correct in every condition.
+Hiding s2 or s4 moved 7 of 480 item-by-hide combinations, all category B. Hiding the error's own line
+moved 10 items: 6 category A, all `outside_bracket_first` (min 0.556), plus 4 B. Hiding s1, s3 and s5
+together: A 0.986; hiding all five intermediate lines (only expression and answer shown): A 0.933.
+The work without the answer: still 1.000. Only the first line shown: error-at-step-3 items 0.333.
+
+**Why hiding barely matters. Two reasons, for different cells; do not merge them.**
+1. *Hiding a correct line away from the error: correct steps carry almost no evidence* (§3 item 5).
+2. *Hiding a line next to the error, or the error's own line: the gap is pinned by its endpoints.*
+   Marginalising over the hidden state keeps only profiles that can bridge `s_{k-1} -> s_{k+1}` in two
+   steps, and usually only the true profile can, so the elimination still happens. The exception is
+   `outside_bracket_first`: it is the only rule that removes options, so its evidence is the only kind
+   a single hidden line can dilute.
+
+### The design questions, resolved (2026-09-14)
+1. Which line is hidden: relative to the error (easy / medium / hard, §0), not a fixed s2 or s4.
+2. Items: 720 (240 traces x 3 versions), no no-hide control.
+3. Trials: 24 per participant, one expression at most once, with the rotation in §0.
+4. **Still open:** display of the hidden line, and whether participants are told a line is missing.
 
 ---
 
 ## 6. Figures (`analysis-Bayesian/`)
 
+⚠️ **Stale on branch `hidden-difficulty`.** The scripts group by `POSITIONS = [1, 3]`
+(`bayes_common.py`) and `plot_bayes_hidden_dist_A.py` reads the v5 conditions (`none/s2/s4/error_line`),
+which `bayes_per_item_hidden.json` no longer has. The PNGs in the folder are from the v5 pool. They
+need rewriting for v6 (difficulty instead of position) before use.
+
 - **`bayes_common.py`** shared loader and styling; reads `base-task/bayes_per_item.json`.
 - **`plot_bayes_1misc_heatmap.py`**, **`plot_bayes_1misc_by_rule.py`**, **`plot_bayes_1misc_profile.py`**
-  -> the three fully observed figures, identical to Experiment 1's (present x named heatmap with 0
-  empty cells; P(rule | trace) present vs absent per rule; all six marginals per trace).
+  -> the three fully observed figures (present x named heatmap; P(rule | trace) present vs absent per
+  rule; all six marginals per trace).
 - **`plot_bayes_hidden_dist_A.py`** -> `bayes_hidden_dist_A.png`. Category A, one panel per
-  misconception, one stem series per hidden condition, from `bayes_per_item_hidden.json`. `none`,
-  `s2` and `s4` are exactly equal on all 120 A items, so three series coincide at 1.000 in every panel
-  (offset only to be visible). **All movement is in the `outside_bracket_first` panel**, where hiding
-  the error's own line takes 6 of its 20 items below 1.000 (panel mean 1.000 -> 0.911).
+  misconception, one stem series per hidden condition.
 
-Finding carried over from the base pool: over the 1200 (trace, absent rule) combinations, 42 give an
+Finding carried over from the v5 pool: over the 1200 (trace, absent rule) combinations, 42 give an
 ABSENT rule a marginal above 0.35 and 27 above 0.5 (max 0.871), all 27 `outside_bracket_first`, and
 the pool excludes all of them from category B.
 
-Rules for any new figure: category A is a point mass at 1.000, do not draw its "distribution";
-marginals are discrete, use exact-value stems, not KDEs; never split by `foil_status`; never group by
-one rule while plotting the marginal selected by a different rule.
+Rules for any new figure: category A is a point mass at 1.000 (except `outside_bracket_first` hard),
+do not draw its "distribution"; marginals are discrete, use exact-value stems, not KDEs; never split
+by `foil_status`; never group by one rule while plotting the marginal selected by a different rule.
 
 ---
 
@@ -362,18 +442,18 @@ working starting point, not Experiment 2's task.
   debrief -> thanks. `estimated_time` is set for Experiment 1.
 - **`src/user/components/trace_judgment/TraceJudgmentView.vue`** the 24-trial task (expression, work
   as `= step` lines, belief statement, 6-point Likert, 3-second lock, "X of 24" counter, mouse
-  tracking, bonus scoring). **Needs a way to render a hidden line.**
+  tracking, bonus scoring). **Needs to render `trace[hidden_line]` as hidden.**
 - **`src/user/utils/sampleForm.js`** + Python twin **`base-task/sample_form.py`**: Experiment 1's
   sampler (four pools by category x position, one item per misconception from each, 24 trials, same
-  seeded PRNG in both languages; `python3 sample_form.py` runs its 500-seed checks). **Knows nothing
-  about hidden steps.**
-- **`src/user/data/stimulus_pool.json`** = the base pool (identical to `base-task/`).
+  seeded PRNG in both languages). **Knows nothing about v6; `sample_form.py`'s checks fail against
+  the v6 pool.** Both must be rewritten for the §0 form.
+- **`src/user/data/stimulus_pool.json`** = still the **v5** pool (see §3 item 7).
   **`src/user/data/practice_items.json`** = Experiment 1's 3 practice items, written by
   `base-task/practice.py`; they show every step.
 - **`InstructionsView.vue`** / **`quizQuestions.js`**: Experiment 1's user-approved text and 4-question
-  quiz. They say nothing about hidden steps.
-- **`PracticeView.vue`** feedback highlights the error step amber; with hidden steps it needs
-  deciding what to highlight if the error's line is the hidden one.
+  quiz. They say nothing about hidden lines.
+- **`PracticeView.vue`** feedback highlights the error step amber; with hidden lines it needs
+  deciding what to highlight when the error's line is the hidden one (hard).
 - **`src/builtins/thanks/ThanksView.vue`** Prolific completion code **`CNIEB9GV`** (old study). A new
   Prolific study issues a new code; replace it in both the `prolific` and `web` blocks before launch.
 - **`public/consent-form.pdf`** NYU IRB form (IRB-FY2026-11440, PI Mark Ho).
@@ -393,8 +473,8 @@ https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/?PROLIFIC_PID={{%PROL
 ```
 
 ### Checklist before running any participant
-- [ ] Design decided (§5) and the hidden-step frontend, sampler, practice items, instructions and quiz
-      built for it (§9), deployed, and the LIVE bundle verified to contain them.
+- [ ] Hidden-line frontend, sampler, practice items, instructions and quiz built for the §0 design
+      (§9), merged, deployed, and the LIVE bundle verified to contain them.
 - [ ] Deploy secrets uploaded and a real deploy confirmed (§1).
 - [ ] Prolific completion code replaced; `estimated_time` in `design.js` checked with the PI.
 - [ ] Consent and debrief: `design.js` points at `public/consent-form.pdf` and `public/debrief.pdf`,
@@ -416,29 +496,30 @@ https://www.codec-lab.org/divya603/bodmas-exp2-hidden/main/?PROLIFIC_PID={{%PROL
 ### Deploys
 `.github/workflows/deploy.yml` deploys on push to ANY branch except `feat-* fix-* refactor-* test-*
 chore-* style-* docs-* ci-*`, each to its own path `/<owner>/<repo>/<branch>/`. So **pushing `main`
-deploys the live experiment**; other branches get separate staging sites. Commits touching only
-`*.md` files or `docs/` do NOT deploy (`paths-ignore`). Monitor with `gh run list` / `gh run watch`.
-A transient "SSH i/o timeout" at "create the remote folders" has happened; `gh run rerun <id>
---failed` fixed it.
+deploys the live experiment**; other branches (including `hidden-difficulty`) get separate staging
+sites. Commits touching only `*.md` files or `docs/` do NOT deploy (`paths-ignore`). Monitor with
+`gh run list` / `gh run watch`. A transient "SSH i/o timeout" at "create the remote folders" has
+happened; `gh run rerun <id> --failed` fixed it.
 
 ---
 
 ## 8. Commands cheat-sheet
 
 ```bash
-# Base pool and fully observed observer
-cd base-task && python3 verify.py          # independent checks on the base pool
-cd base-task && python3 bayes.py           # -> bayes_per_item.json (expect 240/240)
-cd base-task && python3 pool.py            # rebuild the base pool (seed 2026); only if deliberately changing it
+# Pool (v6) and its checks
+cd base-task && python3 pool.py            # rebuild the pool (seed 2026, ~3 s); only if deliberately changing it
+cd base-task && python3 verify.py          # independent checks, incl. every hidden version (~2 s)
 
-# Hidden steps
-cd base-task && python3 bayes_hidden.py    # -> bayes_per_item_hidden.json (960 rows) + summary
+# Observer
+cd base-task && python3 bayes.py           # full traces -> bayes_per_item.json (240 rows, expect 240/240)
+cd base-task && python3 bayes_hidden.py    # each item's own hidden line -> bayes_per_item_hidden.json (720 rows)
+cd base-task && python3 natural_position.py   # error position with no selection (~20 s)
 
-# Frontend helpers (Experiment 1 versions)
+# Frontend helpers (Experiment 1 versions; NOT yet updated for v6)
 cd base-task && python3 sample_form.py     # sampler checks over 500 seeds (twin of sampleForm.js)
 cd base-task && python3 practice.py        # check + write practice items to src/user/data/
 
-# Figures (from repo root)
+# Figures (from repo root; stale for v6, §6)
 python3 analysis-Bayesian/plot_bayes_hidden_dist_A.py
 python3 analysis-Bayesian/plot_bayes_1misc_heatmap.py
 python3 analysis-Bayesian/plot_bayes_1misc_by_rule.py
@@ -453,18 +534,21 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
 
 ---
 
-## 9. What is next
+## 9. What is next (all on branch `hidden-difficulty`)
 
-1. **Decide the design** with the user (§5 open questions 1 to 4). Finish that discussion before
-   writing code.
-2. **Build the hidden-step stimuli**: which line each item hides, stored per item (e.g. a
-   `hidden_line` field) or as a separate derived pool; extend `verify.py` to check it; rerun
-   `bayes_hidden.py` for exactly the chosen conditions.
-3. **Frontend**: render the hidden line in `TraceJudgmentView.vue` and `PracticeView.vue`; new
-   sampler in `sampleForm.js` and `sample_form.py` for the decided form, checked over 500 seeds in
-   both languages; new practice items with a hidden line; instructions and quiz that explain it.
-4. **Deploy**: secrets (§1), then deploy and verify the live bundle before any participant.
-5. The §7 checklist.
+1. **Sampler**, `sampleForm.js` and its twin `sample_form.py`, for the §0 form: 24 trials, the
+   2-1-1 difficulty table with the cyclic misconception rotation, at most one version per trace
+   (`base_id`), and (if the user confirms) each rule named in exactly 2 disagree trials. Same seeded
+   PRNG in both languages, checked over 500 seeds in both.
+2. **Copy the v6 pool** into `src/user/data/stimulus_pool.json` in the same commit as the sampler.
+3. **Decide the hidden-line display** with the user (§5 question 4), then render it in
+   `TraceJudgmentView.vue` and `PracticeView.vue` (and decide what practice feedback highlights when
+   the error's line is hidden).
+4. **Practice items with a hidden line** (`practice.py`), and instructions and quiz that explain it.
+5. **Figures** rewritten for v6 (§6).
+6. **Deploy**: secrets (§1), staging deploy of the branch, verify the live bundle; merge to `main`
+   only with the user's go-ahead.
+7. The §7 checklist.
 
 ---
 
@@ -478,7 +562,9 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
   changes to `main`.
 - **A green deploy run does not mean it deployed.** With secrets missing, the `deploy` job is skipped
   and the workflow still passes. Check the `deploy` job's steps (`gh run view <id>`).
-- **The base pool is a copy of Experiment 1's** (§0). Do not assume a change in one repo reaches the
+- **Two pool copies can drift.** `base-task/stimulus_pool.json` is the source; the frontend reads
+  `src/user/data/stimulus_pool.json`. On this branch they currently differ on purpose (§3 item 7).
+- **The model code is a copy of Experiment 1's** (§0). Do not assume a change in one repo reaches the
   other.
 - **`sampleForm.js` and `sample_form.py` must stay in sync.** The live experiment uses the JS one.
 - **Never commit** `data/real-all-main-data.json`, anything under `data/private/`, `env/*.local`,

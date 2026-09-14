@@ -1,10 +1,13 @@
 """
 bayes.py
 
-Runs the ideal observer over every item in the pool (v5: 240 items, each on its
-own expression) and saves its response to bayes_per_item.json.
+Runs the ideal observer over every TRACE in the pool with every line shown and
+saves its response to bayes_per_item.json. v6 has 720 items but only 240 traces
+(each in three hidden versions, which share the full trace), so this runs once
+per trace and each row's `id` is the trace's base_id. The hidden versions are
+bayes_hidden.py's job.
 
-For each item the observer sees only what a participant sees (the trace) and
+For each trace the observer sees only what a participant sees (the trace) and
 scores the probed rule under the 22 hypotheses (expert + 6 singletons +
 15 pairs) at epsilon=0. Its answer to "does this statement explain the work?"
 is the marginal probability that the student holds the named rule; the binary
@@ -13,11 +16,10 @@ judgment collapses that at 0.5, matching how human ratings are collapsed
 
 Refutation is not a design factor. foil_status is still
 computed and reported here, but nothing is balanced on it, so the per-status
-cells are lopsided (outside_bracket_first runs about 2 refuted to 18
-unsupported). Treat the status breakdown as descriptive, not as a contrast.
+cells are lopsided. Treat the status breakdown as descriptive, not as a contrast.
 
 Use `probed_marginal` as the observer's response. `map_profile` is stored for
-completeness but is NOT a good summary: on ~13% of items the MAP names two
+completeness but is NOT a good summary: on a share of items the MAP names two
 rules for a one-misconception item, always pairing the true rule with
 outside_bracket_first. That rule is the only one that removes options rather
 than adding them (v2 blocks bracket recursion while outside work remains), so
@@ -27,7 +29,6 @@ neither correctness nor any marginal.
 """
 
 import json
-from collections import defaultdict
 
 from inference import posterior_over_profiles, marginal_rule_probability
 from pool import HYPOTHESES, IDS, POSITIONS
@@ -38,12 +39,15 @@ OUT  = 'bayes_per_item.json'
 
 def run(pool_path=POOL, out_path=OUT):
     items = json.load(open(pool_path, encoding='utf-8'))
-    rows = []
+    traces = {}
     for it in items:
+        traces.setdefault(it['base_id'], it)
+    rows = []
+    for base_id, it in traces.items():
         post = posterior_over_profiles(it['trace'], profiles=HYPOTHESES)
         marg = marginal_rule_probability(post, it['probed_misconception'])
         rows.append({
-            'id':                   it['id'],
+            'id':                   base_id,
             'category':             it['category'],
             'error_position':       it['error_position'],
             'true_misconception':   it['misconceptions'][0],
@@ -61,13 +65,15 @@ def run(pool_path=POOL, out_path=OUT):
 
 
 def _stats(vals):
+    if not vals:
+        return "n/a"
     v = sorted(vals)
     return f"min {v[0]:.3f}  mean {sum(v)/len(v):.3f}  max {v[-1]:.3f}"
 
 
 def summarise(rows):
     n = len(rows)
-    print(f"ideal observer run on all {n} items (22 hypotheses, epsilon=0)\n")
+    print(f"ideal observer run on all {n} traces, every line shown (22 hypotheses, epsilon=0)\n")
 
     acc = sum(r['observer_correct'] for r in rows)
     print(f"OVERALL ACCURACY: {acc}/{n} = {acc/n:.1%}\n")
@@ -80,45 +86,45 @@ def summarise(rows):
               f"marginal {_stats([r['probed_marginal'] for r in sub])}")
     print()
 
-    print("A items, probed-rule marginal by rule x position:")
+    print("A traces, probed-rule marginal by rule x error step:")
     for m in IDS:
         cells = []
         for p in POSITIONS:
             v = [r['probed_marginal'] for r in rows
                  if r['category'] == 'A' and r['probed_misconception'] == m
                  and r['error_position'] == p]
-            cells.append(f"pos{p} {sum(v)/len(v):.3f}")
+            cells.append(f"step{p} " + (f"{sum(v)/len(v):.3f} (n={len(v):2d})" if v else "  -   (n= 0)"))
         print(f"    {m:24s} " + "   ".join(cells))
     print()
 
-    print("B items, foil marginal by status x position (status RECORDED, not balanced,\n       so the cell sizes are uneven by design):")
+    print("B traces, foil marginal by status x error step (status RECORDED, not balanced,\n"
+          "       so the cell sizes are uneven by design):")
     for st in ('refuted', 'unsupported'):
         for p in POSITIONS:
-            v = [r['probed_marginal'] for r in rows if r['foil_status'] == st
-                 and r['error_position'] == p]
-            fa = sum(r['observer_agrees'] for r in rows if r['foil_status'] == st
-                     and r['error_position'] == p) / len(v)
-            print(f"    {st:12s} pos{p}:  n={len(v):3d}  {_stats(v)}   P(agree)={fa:.3f}")
+            sub = [r for r in rows if r['foil_status'] == st and r['error_position'] == p]
+            fa = (f"{sum(r['observer_agrees'] for r in sub)/len(sub):.3f}" if sub else "n/a")
+            print(f"    {st:12s} step{p}:  n={len(sub):3d}  "
+                  f"{_stats([r['probed_marginal'] for r in sub])}   P(agree)={fa}")
     print()
 
-    print("B items, foil marginal by probed rule x status:")
+    print("B traces, foil marginal by probed rule x status:")
     for m in IDS:
         cells = []
         for st in ('refuted', 'unsupported'):
             v = [r['probed_marginal'] for r in rows
                  if r['probed_misconception'] == m and r['foil_status'] == st]
-            cells.append(f"{st[:5]} {sum(v)/len(v):.3f}")
+            cells.append(f"{st[:5]} " + (f"{sum(v)/len(v):.3f}" if v else "  -  "))
         print(f"    {m:24s} " + "   ".join(cells))
     print()
 
     mis = [r for r in rows if not r['observer_correct']]
-    print(f"items the observer gets WRONG: {len(mis)}")
+    print(f"traces the observer gets WRONG: {len(mis)}")
     for r in mis[:10]:
-        print(f"    {r['id']} {r['category']} pos{r['error_position']} "
+        print(f"    {r['id']} {r['category']} step{r['error_position']} "
               f"probed={r['probed_misconception']} status={r['foil_status']} "
               f"marginal={r['probed_marginal']:.3f}")
 
-    # MAP is reported for completeness only — see the note in the module docstring.
+    # MAP is reported for completeness only; see the note in the module docstring.
     hit      = sum(1 for r in rows if r['map_profile'] == [r['true_misconception']])
     contains = sum(1 for r in rows if r['true_misconception'] in r['map_profile'])
     two      = [r for r in rows if len(r['map_profile']) == 2]
@@ -126,12 +132,7 @@ def summarise(rows):
     print(f"\nMAP hypothesis contains the true rule:          {contains}/{n} ({contains/n:.0%})")
     print(f"MAP hypothesis == the true single rule exactly: {hit}/{n} ({hit/n:.0%})")
     print(f"  the other {len(two)} have a 2-rule MAP, partner always one of {partners or '-'}.")
-    print("  This is expected, not an error: outside_bracket_first is the only rule that REMOVES")
-    print("  options (v2 blocks bracket recursion while outside work remains), so on a trace that")
-    print("  never enters its bracket early, 'also holds outside_bracket_first' makes the observed")
-    print("  path MORE likely and the pair outscores the singleton. It changes no item's")
-    print("  correctness and no foil marginal. Use the marginal, not the MAP, as the observer's")
-    print("  response.")
+    print("  Expected, not an error (see the module docstring). Use the marginal, not the MAP.")
 
 
 if __name__ == '__main__':
