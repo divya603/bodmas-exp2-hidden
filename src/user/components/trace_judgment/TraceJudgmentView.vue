@@ -33,8 +33,9 @@ const trials = api.steps.append(form.map((item) => ({ ...item })))
 trials.append([{ id: 'summary' }])
 
 // Experiment 2: one line of the work, trace[hidden_line], is hidden. Nothing is
-// shown in its place and participants are not told; the work simply goes from
-// the line before to the line after. trace[0] is the expression, shown above.
+// shown in its place; the work simply goes from the line before to the line
+// after (the instructions say one step is skipped). trace[0] is the expression,
+// shown above.
 function shownWork(item) {
   return item.trace.filter((_, i) => i !== item.hidden_line).slice(1)
 }

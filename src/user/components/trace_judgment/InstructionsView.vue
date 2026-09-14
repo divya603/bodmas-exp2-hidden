@@ -12,10 +12,12 @@ function finish() {
 </script>
 
 <!--
-  Text approved by the user 2026-09-13. The numbers here mirror the task code:
-  $2 = MAX_BONUS and 3 seconds = UNLOCK_DELAY_MS in TraceJudgmentView.vue,
-  24 problems = the form size in utils/sampleForm.js, 3 practice questions =
-  data/practice_items.json. Change them together.
+  Text approved by the user 2026-09-13, revised at the user's request 2026-09-14
+  (participants are told one step is skipped; the bonus is stated in one line).
+  The numbers here mirror the task code: $2 = MAX_BONUS and 3 seconds =
+  UNLOCK_DELAY_MS in TraceJudgmentView.vue, 24 problems = the form size in
+  utils/sampleForm.js, 3 practice questions = data/practice_items.json. Change
+  them together.
 -->
 <template>
   <ConstrainedTaskWindow
@@ -30,8 +32,9 @@ function finish() {
       </h1>
 
       <p class="text-left text-lg mb-4">
-        In this study you will see a math problem, the step-by-step work a student wrote while solving it, and a
-        statement about what that student believes about the order of operations.
+        In this study you will see a math problem, the step-by-step work a student wrote while solving it with
+        <strong>one step skipped</strong>, and a statement about what that student believes about the order of
+        operations.
       </p>
 
       <p class="text-left text-lg mb-4">
@@ -51,12 +54,7 @@ function finish() {
         <strong>Strongly Agree</strong>, to show how sure you are.
       </p>
 
-      <p class="text-left text-lg mb-4">
-        <strong>Bonus.</strong> You can earn up to $2. Somewhat Agree, Agree and Strongly Agree all count as agreeing.
-        A problem counts as correct if you agree with a statement that matches the student's mistake, or disagree
-        with one that doesn't. How strongly you agree or disagree does not change the bonus. Guessing earns nothing:
-        the bonus starts once you get more than half right and reaches $2 at all correct.
-      </p>
+      <p class="text-left text-lg mb-4"><strong>Bonus.</strong> You can earn a bonus of up to $2.</p>
 
       <p class="text-left text-lg mb-4">
         <strong>What happens next.</strong> You'll start with <strong>3 practice questions</strong>. After each one,

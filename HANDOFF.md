@@ -18,7 +18,7 @@ tell which order-of-operations misconception a student holds from the student's 
 the student's error.
 
 **Status (2026-09-14): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE and
-live on `main`; practice items, instructions and quiz NOT yet adapted.**
+live on `main`; instructions and quiz revised; practice items NOT yet adapted.**
 - **Work on `main` only** (the user's preference: one branch). The `hidden-difficulty` branch was
   merged into `main` by fast-forward and deleted on 2026-09-14. Pushing `main` deploys the live
   experiment, so keep `main` in a runnable state.
@@ -52,8 +52,9 @@ is: a model change in Experiment 1 does not reach this repo automatically.
   is 2, 3 or 4. The easy < medium < hard ordering is the user's hypothesis about people; the ideal
   observer barely distinguishes them (§5).
 - **Display: the hidden line is simply not shown.** No ellipsis, no "step not shown" note; the work
-  goes straight from the line before to the line after. **Participants are not told** a line is
-  missing.
+  goes straight from the line before to the line after. **Participants ARE told, in the
+  instructions only**, that the student's work has "one step skipped" (user's decision 2026-09-14,
+  reversing the earlier "do not tell them"). Nothing on the trial screen marks where.
 - **Pool:** 240 traces x 3 hidden versions = 720 items, 360 agree / 360 disagree. Difficulty is
   WITHIN expression (the same work in all three versions). No no-hide control: the effect of hiding
   vs not hiding can only be measured against Experiment 1.
@@ -87,7 +88,7 @@ is: a model change in Experiment 1 does not reach this repo automatically.
 
 ### The task (one trial)
 A participant sees a **math expression**, a **student's step-by-step work** containing exactly one
-order-of-operations misconception, with **one line silently left out**, and a **belief statement**
+order-of-operations misconception, with **one step skipped** (unmarked), and a **belief statement**
 claiming the student holds a particular misconception. They rate on a **6-point Likert scale** (1 =
 Strongly Disagree, 6 = Strongly Agree) how well the statement explains the work, NOT whether the
 final answer is right. Scoring collapses the rating at **>= 4 = agree**.
@@ -412,7 +413,7 @@ The work without the answer: still 1.000. Only the first line shown: error-at-st
 1. Which line is hidden: relative to the error (easy / medium / hard, §0), not a fixed s2 or s4.
 2. Items: 720 (240 traces x 3 versions), no no-hide control.
 3. Trials: 24 per participant, one expression at most once, rows assigned by random permutation.
-4. Display: the line is left out with nothing in its place, and participants are not told.
+4. Display: the line is left out with nothing in its place; the instructions say one step is skipped.
 
 ---
 
@@ -465,8 +466,12 @@ now Experiment 2's, the practice is still Experiment 1's.
 - **`src/user/data/stimulus_pool.json`** = the v6 pool (§3 item 7).
   **`src/user/data/practice_items.json`** = still Experiment 1's 3 practice items, written by
   `base-task/practice.py`; they show every line and have no `hidden_line`.
-- **`InstructionsView.vue`** / **`quizQuestions.js`**: Experiment 1's user-approved text and quiz,
-  under review with the user (§9). The quiz is down to 3 questions (what to base the rating on; one
+- **`InstructionsView.vue`**: Experiment 1's user-approved text with two changes the user asked for
+  on 2026-09-14: the first paragraph says the work is shown "with one step skipped", and the bonus
+  paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
+  explained to participants, though the bonus is computed exactly as before, §7 Bonus). The user
+  wants the text short: do not over-explain.
+- **`quizQuestions.js`**: the quiz is down to 3 questions (what to base the rating on; one
   mistake per student; a different-mistake statement means disagree): Experiment 1's brackets
   question was removed on 2026-09-14 at the user's request (commit `9eeb981`; deploy ran and the
   LIVE bundle was checked: the brackets question is gone, the other three are there). The text says "the step-by-step work a
@@ -559,16 +564,17 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
 
 ## 9. What is next
 
-1. **Instructions and quiz** (in progress with the user, 2026-09-14). The decision is not to tell
-   participants a line is missing; review the Experiment 1 text and quiz for anything that now
-   misleads or confuses.
-2. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
+1. **Instructions and quiz**: revised 2026-09-14 (one step skipped; one-line bonus; 3-question
+   quiz). Further changes only if the user asks.
+2. **Debrief**: the generic lab PDF (`public/debrief.pdf`) does not mention the skipped step; the
+   user may check with the PI whether it should.
+3. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
    whether practice should also leave a line out (and, for a hard-style item, what the feedback
    highlights when the error's own line is missing); then `practice.py` and `PracticeView.vue`.
-3. **Click through the live site** end to end: a line really is missing on every trial, 24 trials,
+4. **Click through the live site** end to end: a line really is missing on every trial, 24 trials,
    and `difficulty` / `hidden_line` / `base_id` are in the saved trial data.
-4. **Figures** rewritten for v6 (§6).
-5. `estimated_time`, Prolific code, IRB coverage (§7 checklist), then verify the live bundle.
+5. **Figures** rewritten for v6 (§6).
+6. `estimated_time`, Prolific code, IRB coverage (§7 checklist), then verify the live bundle.
 
 ---
 
