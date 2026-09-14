@@ -470,7 +470,8 @@ now Experiment 2's, the practice is still Experiment 1's.
   on 2026-09-14: the first paragraph says the work is shown "with one step skipped", and the bonus
   paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
   explained to participants, though the bonus is computed exactly as before, §7 Bonus). The user
-  wants the text short: do not over-explain.
+  wants the text short: do not over-explain. Live since commit `a283a15` (deploy ran; the LIVE
+  bundle was checked for the new text and the old bonus explanation is gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base the rating on; one
   mistake per student; a different-mistake statement means disagree): Experiment 1's brackets
   question was removed on 2026-09-14 at the user's request (commit `9eeb981`; deploy ran and the
