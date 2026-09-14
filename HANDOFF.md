@@ -466,9 +466,11 @@ now Experiment 2's, the practice is still Experiment 1's.
 - **`src/user/data/stimulus_pool.json`** = the v6 pool (§3 item 7).
   **`src/user/data/practice_items.json`** = still Experiment 1's 3 practice items, written by
   `base-task/practice.py`; they show every line and have no `hidden_line`.
-- **`InstructionsView.vue`**: Experiment 1's user-approved text with two changes the user asked for
-  on 2026-09-14: the first paragraph says the work is shown "with one step skipped", and the bonus
-  paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
+- **`InstructionsView.vue`**: Experiment 1's user-approved text with three changes the user asked for
+  on 2026-09-14: the first paragraph says the work is shown "with one step skipped"; "Your job" no
+  longer has the "Disagree when their mistake is a different one, including when the problem never
+  gives the student a chance..." sentence (it keeps "Agree when the student's mistake is the one the
+  statement describes"); and the bonus paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
   explained to participants, though the bonus is computed exactly as before, §7 Bonus). The user
   wants the text short: do not over-explain. Live since commit `a283a15` (deploy ran; the LIVE
   bundle was checked for the new text and the old bonus explanation is gone).

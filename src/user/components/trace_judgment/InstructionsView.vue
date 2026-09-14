@@ -13,7 +13,8 @@ function finish() {
 
 <!--
   Text approved by the user 2026-09-13, revised at the user's request 2026-09-14
-  (participants are told one step is skipped; the bonus is stated in one line).
+  (participants are told one step is skipped; the bonus is stated in one line; the
+  "Disagree when their mistake is a different one..." sentence removed).
   The numbers here mirror the task code: $2 = MAX_BONUS and 3 seconds =
   UNLOCK_DELAY_MS in TraceJudgmentView.vue, 24 problems = the form size in
   utils/sampleForm.js, 3 practice questions = data/practice_items.json. Change
@@ -48,10 +49,9 @@ function finish() {
 
       <p class="text-left text-lg mb-4">
         <strong>Your job.</strong> Rate how much you agree that the statement describes what the student believes,
-        using their work as evidence. Agree when the student's mistake is the one the statement describes. Disagree
-        when their mistake is a different one, including when the problem never gives the student a chance to show
-        the belief in the statement. Use the 6-point scale, from <strong>Strongly Disagree</strong> to
-        <strong>Strongly Agree</strong>, to show how sure you are.
+        using their work as evidence. Agree when the student's mistake is the one the statement describes. Use the
+        6-point scale, from <strong>Strongly Disagree</strong> to <strong>Strongly Agree</strong>, to show how sure you
+        are.
       </p>
 
       <p class="text-left text-lg mb-4"><strong>Bonus.</strong> You can earn a bonus of up to $2.</p>
