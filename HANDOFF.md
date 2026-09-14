@@ -468,7 +468,8 @@ now Experiment 2's, the practice is still Experiment 1's.
 - **`InstructionsView.vue`** / **`quizQuestions.js`**: Experiment 1's user-approved text and quiz,
   under review with the user (§9). The quiz is down to 3 questions (what to base the rating on; one
   mistake per student; a different-mistake statement means disagree): Experiment 1's brackets
-  question was removed on 2026-09-14 at the user's request. The text says "the step-by-step work a
+  question was removed on 2026-09-14 at the user's request (commit `9eeb981`; deploy ran and the
+  LIVE bundle was checked: the brackets question is gone, the other three are there). The text says "the step-by-step work a
   student wrote" and "every student makes exactly one mistake, at one step of their work"; it never
   claims every line is shown.
 - **`PracticeView.vue`** feedback highlights the error step amber. If practice items get a hidden
