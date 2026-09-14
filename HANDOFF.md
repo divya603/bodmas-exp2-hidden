@@ -137,6 +137,8 @@ What each secrets step does:
 
 **Status as of 2026-09-14: secrets uploaded (by the user) and real deploys confirmed.** `main`:
 first `workflow_dispatch` on 2026-09-13 (`deploy` job ran, 1m20s; that build was Experiment 1's task).
+After the merge, the push of `6be93c0` (2026-09-14) deployed (`deploy` job 1m30s) and the LIVE `main`
+bundle was checked: it contains the v6 items (`A000-E` ... `B119-H`) and `hidden_line`.
 Remember `deploy.yml` SKIPS the `deploy` job and still shows GREEN when secrets are missing, so always
 check with `gh run view <id>` that the **`deploy` job itself ran** (build and rsync, about a minute).
 
