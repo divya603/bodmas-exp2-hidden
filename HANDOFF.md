@@ -27,7 +27,7 @@ live on `main`; instructions and quiz revised and live; practice items NOT yet a
   the trial view hides the line (§7); `src/user/data/stimulus_pool.json` is the v6 pool.
 - Done with the user (2026-09-14 to 16): instructions shortened and revised, quiz cut to 3 questions,
   and answers are YES / NO with the D / F keys everywhere (live since `5e8a55f`; the user is checking
-  (§7).
+  it on the live site; §7).
 - Not done: practice items (still Experiment 1's 3 full traces), the debrief question for the PI,
   the Bayesian figures (stale, §6). See §9.
 No human or LLM data exist yet.
