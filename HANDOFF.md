@@ -57,6 +57,11 @@ is: a model change in Experiment 1 does not reach this repo automatically.
   goes straight from the line before to the line after. **Participants ARE told, in the
   instructions only**, that the student's work has "one step skipped" (user's decision 2026-09-14,
   reversing the earlier "do not tell them"). Nothing on the trial screen marks where.
+- **Response: YES / NO** (user's decision 2026-09-16), with the **D (YES) and F (NO) keys** or two
+  buttons (green YES, red NO), in the practice and the real trials. Experiment 1's 6-point scale is
+  gone: it was there because an earlier design had items with two misconceptions and ambiguous
+  answers; every v6 item has one misconception and a clear answer. The dependent variables are the
+  binary answer and its RT.
 - **Pool:** 240 traces x 3 hidden versions = 720 items, 360 agree / 360 disagree. Difficulty is
   WITHIN expression (the same work in all three versions). No no-hide control: the effect of hiding
   vs not hiding can only be measured against Experiment 1.
@@ -91,9 +96,9 @@ is: a model change in Experiment 1 does not reach this repo automatically.
 ### The task (one trial)
 A participant sees a **math expression**, a **student's step-by-step work** containing exactly one
 order-of-operations misconception, with **one step skipped** (unmarked), and a **belief statement**
-claiming the student holds a particular misconception. They rate on a **6-point Likert scale** (1 =
-Strongly Disagree, 6 = Strongly Agree) how well the statement explains the work, NOT whether the
-final answer is right. Scoring collapses the rating at **>= 4 = agree**.
+claiming the student holds a particular misconception. They answer **YES or NO** (the D / F keys or
+two buttons): does the statement describe what the student believes? It is about the work, NOT
+whether the final answer is right. **YES = agree.**
 
 ### The 6 misconceptions
 | id | meaning |
@@ -454,9 +459,12 @@ now Experiment 2's, the practice is still Experiment 1's.
   debrief -> thanks. `estimated_time` is set for Experiment 1.
 - **`src/user/components/trace_judgment/TraceJudgmentView.vue`** the 24-trial task. Shows the
   expression, then the work as `= line` for every line except `trace[hidden_line]` (`shownWork()`;
-  nothing in its place), the belief statement, 6-point Likert, 3-second lock, "X of 24" counter, mouse
-  tracking, bonus scoring. Every item field (incl. `difficulty`, `hidden_line`, `base_id`) is recorded
-  with the trial. The form seed is persisted, so a reload redraws the same form.
+  nothing in its place), the belief statement, the question "Is this what the student believes?",
+  the YES / NO buttons, 3-second lock, "X of 24" counter, mouse tracking, bonus scoring. An answer (key
+  or click) records the trial and moves straight to the next one; no Submit button. Recorded per
+  trial: `response` (`'yes'`/`'no'`), `response_method` (`'key'`/`'click'`/`'autofill'`), `rt`,
+  `responded_agree`, `correct_agree`, `is_correct`, `mouse`, plus every item field (incl.
+  `difficulty`, `hidden_line`, `base_id`). The form seed is persisted, so a reload redraws the same form.
 - **`src/user/utils/sampleForm.js`** + Python twin **`base-task/sample_form.py`**: the v6 sampler
   (§0): a random permutation assigns the 6 misconceptions to the 6 `ROWS`; each (difficulty,
   category) cell of a row is one random pool item of that misconception, skipping traces already
@@ -475,26 +483,37 @@ now Experiment 2's, the practice is still Experiment 1's.
   statement describes"); and the bonus paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
   explained to participants, though the bonus is computed exactly as before, §7 Bonus). On
   2026-09-16 the user also had the "The correct order of operations: brackets first; then × and ÷..."
-  paragraph removed, so the instructions no longer state the correct order. The user
+  paragraph removed, so the instructions no longer state the correct order, and "Your job" now
+  reads "Decide whether the statement describes what the student believes, using their work as
+  evidence. Answer YES when the student's mistake is the one the statement describes. Press D for
+  YES or F for NO." (the 6-point scale sentence is gone). The user
   wants the text short: do not over-explain. Live since commit `276f334` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
-- **`quizQuestions.js`**: the quiz is down to 3 questions (what to base the rating on; one
-  mistake per student; a different-mistake statement means disagree): Experiment 1's brackets
+- **`quizQuestions.js`**: the quiz is down to 3 questions (what to base your answer on; one
+  mistake per student; a different-mistake statement means NO, with YES / NO options since
+  2026-09-16): Experiment 1's brackets
   question was removed on 2026-09-14 at the user's request (commit `9eeb981`; deploy ran and the
   LIVE bundle was checked: the brackets question is gone, the other three are there). The text says "the step-by-step work a
   student wrote" and "every student makes exactly one mistake, at one step of their work"; it never
   claims every line is shown.
-- **`PracticeView.vue`** feedback highlights the error step amber. If practice items get a hidden
-  line, decide what the feedback highlights when the error's own line is the hidden one (hard).
+- **`YesNoButtons.vue`** the shared answer component (user's design, 2026-09-16): green YES (D) and red
+  NO (F) buttons with "Press D for YES or F for NO" underneath. Listens for the D / F keys (VueUse
+  `onKeyDown`, removed when the component unmounts), ignores keys and clicks while `disabled`, and
+  emits `answer` with `{ response, method }`. `chosen` keeps the given answer highlighted.
+- **`PracticeView.vue`** same YES / NO answer; after answering, the chosen button stays highlighted,
+  the error step is highlighted amber with its note, the feedback paragraph shows (now ending "the
+  right answer would be YES/NO", from `practice.py`), then "Next practice question". If practice
+  items get a hidden line, decide what the feedback highlights when the error's own line is hidden.
+- **`StrategyQuestionView.vue`** asks how participants decided "whether to answer YES or NO".
 - **`src/builtins/thanks/ThanksView.vue`** Prolific completion code **`CNIEB9GV`** (old study). A new
   Prolific study issues a new code; replace it in both the `prolific` and `web` blocks before launch.
 - **`public/consent-form.pdf`** NYU IRB form (IRB-FY2026-11440, PI Mark Ho).
 
 ### Bonus
-Binary direction only: rating >= 4 counts as agree, correct if that matches `statement_correct`.
+YES counts as agree; a trial is correct if that matches `statement_correct`.
 `bonus = max(0, (accuracy - 0.5) / 0.5) x $2`, rounded to cents, recorded per trial (`is_correct`)
-and as a `traceJudgmentBonus` block in `pageData_exp`. Confidence is deliberately NOT rewarded,
-because the Likert distribution is the dependent variable. Base pay is separate.
+and as a `traceJudgmentBonus` block in `pageData_exp`. Participants are told only "You can earn a
+bonus of up to $2." Base pay is separate.
 
 ### ⚠️ Prolific URL (a missing-params bug cost a whole batch once)
 Participants MUST arrive on `#/welcome/prolific/` with the ID params, or they are recorded

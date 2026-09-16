@@ -15,7 +15,8 @@ function finish() {
   Text approved by the user 2026-09-13, revised at the user's request 2026-09-14
   (participants are told one step is skipped; the bonus is stated in one line; the
   "Disagree when their mistake is a different one..." sentence removed), and again
-  2026-09-16 (the "correct order of operations" paragraph removed).
+  2026-09-16 (the "correct order of operations" paragraph removed; the 6-point scale
+  replaced by YES / NO with the D / F keys).
   The numbers here mirror the task code: $2 = MAX_BONUS and 3 seconds =
   UNLOCK_DELAY_MS in TraceJudgmentView.vue, 24 problems = the form size in
   utils/sampleForm.js, 3 practice questions = data/practice_items.json. Change
@@ -44,10 +45,12 @@ function finish() {
       </p>
 
       <p class="text-left text-lg mb-4">
-        <strong>Your job.</strong> Rate how much you agree that the statement describes what the student believes,
-        using their work as evidence. Agree when the student's mistake is the one the statement describes. Use the
-        6-point scale, from <strong>Strongly Disagree</strong> to <strong>Strongly Agree</strong>, to show how sure you
-        are.
+        <strong>Your job.</strong> Decide whether the statement describes what the student believes, using their work
+        as evidence. Answer <strong>YES</strong> when the student's mistake is the one the statement describes. Press
+        <kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-white font-mono text-base">D</kbd> for
+        <strong>YES</strong> or
+        <kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-white font-mono text-base">F</kbd> for
+        <strong>NO</strong>.
       </p>
 
       <p class="text-left text-lg mb-4"><strong>Bonus.</strong> You can earn a bonus of up to $2.</p>
