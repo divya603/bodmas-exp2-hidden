@@ -626,6 +626,11 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
   `src/user/data/stimulus_pool.json`. Keep them identical (§3 item 7).
 - **The model code is a copy of Experiment 1's** (§0). Do not assume a change in one repo reaches the
   other.
+- **Shared screens, kept in step by copy (2026-09-16).** `YesNoButtons.vue`, `PracticeView.vue` and
+  `StrategyQuestionView.vue` are byte-identical in `divya603/bodmas-exp1-position`, which got the same
+  YES / NO change the same day; its `TraceJudgmentView.vue` differs only by the hidden-line code, and
+  its instructions use this repo's text minus "one step skipped". When the user changes one
+  experiment's task screens or wording, ask whether the other should follow.
 - **`sampleForm.js` and `sample_form.py` must stay in sync.** The live experiment uses the JS one;
   check with the parity command in §8.
 - **Never commit** `data/real-all-main-data.json`, anything under `data/private/`, `env/*.local`,
