@@ -474,7 +474,7 @@ now Experiment 2's, the practice is still Experiment 1's.
   explained to participants, though the bonus is computed exactly as before, §7 Bonus). On
   2026-09-16 the user also had the "The correct order of operations: brackets first; then × and ÷..."
   paragraph removed, so the instructions no longer state the correct order. The user
-  wants the text short: do not over-explain. Live since commit `e757021` (deploy ran; the LIVE
+  wants the text short: do not over-explain. Live since commit `276f334` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base the rating on; one
   mistake per student; a different-mistake statement means disagree): Experiment 1's brackets
