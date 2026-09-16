@@ -487,7 +487,7 @@ now Experiment 2's, the practice is still Experiment 1's.
   reads "Decide whether the statement describes what the student believes, using their work as
   evidence. Answer YES when the student's mistake is the one the statement describes. Press D for
   YES or F for NO." (the 6-point scale sentence is gone). The user
-  wants the text short: do not over-explain. Live since commit `276f334` (deploy ran; the LIVE
+  wants the text short: do not over-explain. Live since commit `5e8a55f` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base your answer on; one
   mistake per student; a different-mistake statement means NO, with YES / NO options since
@@ -597,7 +597,7 @@ npm run upload_config                      # (re)push deploy secrets from env/*.
 3. **Practice items.** They are Experiment 1's 3 items with every line shown. Decide with the user
    whether practice should also leave a line out (and, for a hard-style item, what the feedback
    highlights when the error's own line is missing); then `practice.py` and `PracticeView.vue`.
-4. **Click through the live site** end to end: a line really is missing on every trial, 24 trials,
+4. **Click through the live site** end to end (the user is doing this, 2026-09-16; the YES / NO keys, the 3-second lock and the practice feedback have NOT been browser-tested by Claude, whose Chrome check was blocked): a line really is missing on every trial, 24 trials,
    and `difficulty` / `hidden_line` / `base_id` are in the saved trial data.
 5. **Figures** rewritten for v6 (§6).
 6. `estimated_time`, Prolific code, IRB coverage (§7 checklist), then verify the live bundle.
