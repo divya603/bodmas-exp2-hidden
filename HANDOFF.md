@@ -492,7 +492,7 @@ now Experiment 2's, the practice is still Experiment 1's.
   questions. After each one, we highlight and explain the right answer. Practice trials do not
   count towards your bonus. Then you'll judge 24 problems. On each one, the answer buttons unlock
   after 3 seconds, so take time to read the work." The user
-  wants the text short: do not over-explain. Live since commit `5e8a55f` (deploy ran; the LIVE
+  wants the text short: do not over-explain. Live since commit `f5f8f6c` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base your answer on; one
   mistake per student; a different-mistake statement means NO, with YES / NO options since
