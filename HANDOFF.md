@@ -501,6 +501,8 @@ now Experiment 2's, the practice is still Experiment 1's.
   NO (F) buttons with "Press D for YES or F for NO" underneath. Listens for the D / F keys (VueUse
   `onKeyDown`, removed when the component unmounts), ignores keys and clicks while `disabled`, and
   emits `answer` with `{ response, method }`. `chosen` keeps the given answer highlighted.
+  Sized down on 2026-09-16 at the user's request (the first version was "way too big"): `w-28 py-2
+  text-base`, small key hints; live since `0ecd5d4`.
 - **`PracticeView.vue`** same YES / NO answer; after answering, the chosen button stays highlighted,
   the error step is highlighted amber with its note, the feedback paragraph shows (now ending "the
   right answer would be YES/NO", from `practice.py`), then "Next practice question". If practice
