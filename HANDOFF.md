@@ -17,16 +17,18 @@ tell which order-of-operations misconception a student holds from the student's 
 **one line of that work is hidden**, and whether it matters where the hidden line sits relative to
 the student's error.
 
-**Status (2026-09-14): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE and
-live on `main`; instructions and quiz revised; practice items NOT yet adapted.**
+**Status (2026-09-16): design DECIDED; v6 pool, 24-trial sampler and hidden-line display DONE and
+live on `main`; instructions and quiz revised and live; practice items NOT yet adapted.**
 - **Work on `main` only** (the user's preference: one branch). The `hidden-difficulty` branch was
   merged into `main` by fast-forward and deleted on 2026-09-14. Pushing `main` deploys the live
   experiment, so keep `main` in a runnable state.
 - Done: the v6 pool (720 items, §3), verified; the ideal observer run on it (§4, §5); the
   natural-error-position analysis (§5); the sampler in JS and Python, identical on 503 seeds (§7);
   the trial view hides the line (§7); `src/user/data/stimulus_pool.json` is the v6 pool.
-- Not done: practice items (still Experiment 1's 3 full traces), instructions and quiz review for
-  Experiment 2, the Bayesian figures (stale, §6). See §9.
+- Done with the user (2026-09-14 to 16): instructions shortened and revised, quiz cut to 3 questions
+  (§7).
+- Not done: practice items (still Experiment 1's 3 full traces), the debrief question for the PI,
+  the Bayesian figures (stale, §6). See §9.
 No human or LLM data exist yet.
 
 Provenance: seeded from `divya603/bodmas-exp1-position` at commit `862dea1` (its pool, model,
