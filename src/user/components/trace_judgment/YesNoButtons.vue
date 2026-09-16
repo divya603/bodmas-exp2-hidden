@@ -36,39 +36,39 @@ function dim(response) {
 
 <template>
   <div class="mb-6">
-    <div class="flex justify-center gap-8">
+    <div class="flex justify-center gap-4">
       <button
         type="button"
         :disabled="disabled"
         @click="answer('yes', 'click')"
-        class="w-56 py-4 rounded-xl text-2xl font-bold text-white bg-emerald-600 transition"
+        class="w-28 py-2 rounded-lg text-base font-bold text-white bg-emerald-600 transition"
         :class="[
           dim('yes'),
-          chosen === 'yes' ? 'ring-4 ring-emerald-300' : '',
+          chosen === 'yes' ? 'ring-2 ring-emerald-300' : '',
           disabled ? 'cursor-not-allowed' : 'hover:bg-emerald-700',
         ]"
       >
-        YES <span class="ml-2 text-lg font-semibold text-white/60">(D)</span>
+        YES <span class="ml-1 text-xs font-semibold text-white/60">(D)</span>
       </button>
       <button
         type="button"
         :disabled="disabled"
         @click="answer('no', 'click')"
-        class="w-56 py-4 rounded-xl text-2xl font-bold text-white bg-rose-600 transition"
+        class="w-28 py-2 rounded-lg text-base font-bold text-white bg-rose-600 transition"
         :class="[
           dim('no'),
-          chosen === 'no' ? 'ring-4 ring-rose-300' : '',
+          chosen === 'no' ? 'ring-2 ring-rose-300' : '',
           disabled ? 'cursor-not-allowed' : 'hover:bg-rose-700',
         ]"
       >
-        NO <span class="ml-2 text-lg font-semibold text-white/60">(F)</span>
+        NO <span class="ml-1 text-xs font-semibold text-white/60">(F)</span>
       </button>
     </div>
-    <p class="mt-3 text-center text-muted-foreground">
+    <p class="mt-2 text-center text-sm text-muted-foreground">
       Press
-      <kbd class="px-1.5 py-0.5 mx-0.5 rounded border border-gray-300 bg-white font-mono text-sm">D</kbd>
+      <kbd class="px-1 mx-0.5 rounded border border-gray-300 bg-white font-mono text-xs">D</kbd>
       for <strong>YES</strong> or
-      <kbd class="px-1.5 py-0.5 mx-0.5 rounded border border-gray-300 bg-white font-mono text-sm">F</kbd>
+      <kbd class="px-1 mx-0.5 rounded border border-gray-300 bg-white font-mono text-xs">F</kbd>
       for <strong>NO</strong>
     </p>
   </div>
