@@ -484,10 +484,14 @@ now Experiment 2's, the practice is still Experiment 1's.
   statement describes"); and the bonus paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
   explained to participants, though the bonus is computed exactly as before, §7 Bonus). On
   2026-09-16 the user also had the "The correct order of operations: brackets first; then × and ÷..."
-  paragraph removed, so the instructions no longer state the correct order, and "Your job" now
-  reads "Decide whether the statement describes what the student believes, using their work as
-  evidence. Answer YES when the student's mistake is the one the statement describes. Press D for
-  YES or F for NO." (the 6-point scale sentence is gone). The user
+  paragraph removed, so the instructions no longer state the correct order. Later the same day the
+  user gave the exact wording for two paragraphs: "Your Job. Decide whether the statement describes
+  what the student believes, using their work as evidence. Answer YES when the student's mistake is
+  the one the statement describes and NO otherwise." (no D / F sentence; the trial screen shows the
+  keys under the buttons), and, with no "What happens next" label, "You'll start with 3 practice
+  questions. After each one, we highlight and explain the right answer. Practice trials do not
+  count towards your bonus. Then you'll judge 24 problems. On each one, the answer buttons unlock
+  after 3 seconds, so take time to read the work." The user
   wants the text short: do not over-explain. Live since commit `5e8a55f` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base your answer on; one

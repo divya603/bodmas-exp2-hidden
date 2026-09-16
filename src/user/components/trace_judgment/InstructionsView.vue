@@ -16,7 +16,8 @@ function finish() {
   (participants are told one step is skipped; the bonus is stated in one line; the
   "Disagree when their mistake is a different one..." sentence removed), and again
   2026-09-16 (the "correct order of operations" paragraph removed; the 6-point scale
-  replaced by YES / NO with the D / F keys).
+  replaced by YES / NO with the D / F keys; "Your Job" and the practice paragraph
+  reworded by the user, the "What happens next" label dropped).
   The numbers here mirror the task code: $2 = MAX_BONUS and 3 seconds =
   UNLOCK_DELAY_MS in TraceJudgmentView.vue, 24 problems = the form size in
   utils/sampleForm.js, 3 practice questions = data/practice_items.json. Change
@@ -45,21 +46,17 @@ function finish() {
       </p>
 
       <p class="text-left text-lg mb-4">
-        <strong>Your job.</strong> Decide whether the statement describes what the student believes, using their work
-        as evidence. Answer <strong>YES</strong> when the student's mistake is the one the statement describes. Press
-        <kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-white font-mono text-base">D</kbd> for
-        <strong>YES</strong> or
-        <kbd class="px-1.5 py-0.5 rounded border border-gray-300 bg-white font-mono text-base">F</kbd> for
-        <strong>NO</strong>.
+        <strong>Your Job.</strong> Decide whether the statement describes what the student believes, using their work
+        as evidence. Answer <strong>YES</strong> when the student's mistake is the one the statement describes and
+        <strong>NO</strong> otherwise.
       </p>
 
       <p class="text-left text-lg mb-4"><strong>Bonus.</strong> You can earn a bonus of up to $2.</p>
 
       <p class="text-left text-lg mb-4">
-        <strong>What happens next.</strong> You'll start with <strong>3 practice questions</strong>. After each one,
-        we highlight the student's mistake and explain the right answer. Practice doesn't count toward your bonus.
-        Then you'll judge <strong>24 problems</strong>. On each one, the answer buttons unlock after 3 seconds, so
-        take time to read the work.
+        You'll start with <strong>3 practice questions</strong>. After each one, we highlight and explain the right
+        answer. Practice trials do not count towards your bonus. Then you'll judge <strong>24 problems</strong>. On
+        each one, the answer buttons unlock after 3 seconds, so take time to read the work.
       </p>
 
       <hr class="border-gray-300 my-4" />
