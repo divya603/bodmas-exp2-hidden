@@ -14,7 +14,8 @@ function finish() {
 <!--
   Text approved by the user 2026-09-13, revised at the user's request 2026-09-14
   (participants are told one step is skipped; the bonus is stated in one line; the
-  "Disagree when their mistake is a different one..." sentence removed).
+  "Disagree when their mistake is a different one..." sentence removed), and again
+  2026-09-16 (the "correct order of operations" paragraph removed).
   The numbers here mirror the task code: $2 = MAX_BONUS and 3 seconds =
   UNLOCK_DELAY_MS in TraceJudgmentView.vue, 24 problems = the form size in
   utils/sampleForm.js, 3 practice questions = data/practice_items.json. Change
@@ -36,11 +37,6 @@ function finish() {
         In this study you will see a math problem, the step-by-step work a student wrote while solving it with
         <strong>one step skipped</strong>, and a statement about what that student believes about the order of
         operations.
-      </p>
-
-      <p class="text-left text-lg mb-4">
-        <strong>The correct order of operations:</strong> brackets first; then × and ÷, working left to right; then +
-        and -, working left to right.
       </p>
 
       <p class="text-left text-lg mb-4">

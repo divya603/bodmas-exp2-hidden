@@ -471,7 +471,9 @@ now Experiment 2's, the practice is still Experiment 1's.
   longer has the "Disagree when their mistake is a different one, including when the problem never
   gives the student a chance..." sentence (it keeps "Agree when the student's mistake is the one the
   statement describes"); and the bonus paragraph is one line ("You can earn a bonus of up to $2."; the scoring rule is no longer
-  explained to participants, though the bonus is computed exactly as before, §7 Bonus). The user
+  explained to participants, though the bonus is computed exactly as before, §7 Bonus). On
+  2026-09-16 the user also had the "The correct order of operations: brackets first; then × and ÷..."
+  paragraph removed, so the instructions no longer state the correct order. The user
   wants the text short: do not over-explain. Live since commit `e757021` (deploy ran; the LIVE
   bundle was checked: new text present, the removed sentence and old bonus explanation gone).
 - **`quizQuestions.js`**: the quiz is down to 3 questions (what to base the rating on; one
